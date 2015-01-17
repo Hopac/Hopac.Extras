@@ -17,9 +17,9 @@ type private PoolEntry<'a when 'a :> IDisposable> =
 type ObjectPool<'a when 'a :> IDisposable>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBeforeDispose: TimeSpan) =
     let capacity = defaultArg capacity 50u
     let inactiveTimeBeforeDispose = defaultArg inactiveTimeBeforeDispose (TimeSpan.FromMinutes 1.)
-    let reqCh = ch<'a PoolEntry Ch>()
+    let reqCh = ch<Promise<unit> * 'a PoolEntry Ch>()
     let releaseCh = ch<'a PoolEntry>()
-    let maybeExpiredCh = ch<'a PoolEntry>()
+    let maybeExpiredCh = ch<'a PoolEntry>() 
     let dispose = ivar()
     let hasDisposed = ivar()
     
@@ -33,12 +33,13 @@ type ObjectPool<'a when 'a :> IDisposable>(createNew: unit -> 'a, ?capacity: uin
                 loop (instance :: available, given - 1u, disposed)
         // request for an instance
         let reqAlt() =
-            reqCh >>=? fun replyCh ->
+            reqCh >>=? fun (nack, replyCh) ->
                 let instance, available = 
                     match available with
                     | [] -> PoolEntry.Create (createNew()), []
                     | h :: t -> h, t
-                (replyCh <-- instance >>.? loop (available, given + 1u, disposed))
+                (replyCh <-- instance >>.? loop (available, given + 1u, disposed)) <|>?
+                (nack >>.? loop (instance :: available, given, disposed))
         // an instance was inactive for too long
         let expiredAlt() =
             maybeExpiredCh >>=? fun instance ->
@@ -56,31 +57,25 @@ type ObjectPool<'a when 'a :> IDisposable>(createNew: unit -> 'a, ?capacity: uin
             if given = 0u then 
                 // dispose all instances
                 available |> List.iter (fun x -> x.Value.Dispose())
-                // signal the disposing procedure completed
+                // signal the disposing process completed
                 hasDisposed <-= () 
                 >>% Alt.always()
             else 
                 Job.result <| Alt.never()
 
         if disposed then
-            releaseAlt() <|>? 
-            waitUntilAllReleasedAlt()
+            releaseAlt() <|>? waitUntilAllReleasedAlt()
         elif given < capacity then
             // if number of given objects is not reach the capacity, synchronize on request channel as well
-            releaseAlt() <|>? 
-            expiredAlt() <|>? 
-            disposeAlt() <|>? 
-            reqAlt()
+            releaseAlt() <|>? expiredAlt() <|>? disposeAlt() <|>? reqAlt()
         else
-            releaseAlt() <|>? 
-            expiredAlt() <|>? 
-            disposeAlt()
+            releaseAlt() <|>? expiredAlt() <|>? disposeAlt()
     
     do start (loop ([], 0u, false)) 
      
-    let get() = Alt.guard << Job.delay <| fun _ ->
+    let get() = Alt.withNack <| fun nack ->
         let replyCh = ch()
-        reqCh <-+ replyCh >>% replyCh
+        reqCh <-+ (nack, replyCh) >>% replyCh
 
     /// Gets an available instance from pool or create a new one, then passes it to function f,
     /// then returns the instance back to the pool (even if the job returned by f raises an exception).
@@ -89,7 +84,7 @@ type ObjectPool<'a when 'a :> IDisposable>(createNew: unit -> 'a, ?capacity: uin
             Job.tryFinallyJob (f entry.Value) (releaseCh <-- entry)
 
     interface IDisposable with
-        member __.Dispose() = run (dispose <-= () >>. hasDisposed)
+        member __.Dispose() = run (Job.start (dispose <-= ()) >>. hasDisposed)
 
 type ObjectPool with
     member x.WithInstance f = x.WithInstanceJob (fun a -> Job.result (f a))
