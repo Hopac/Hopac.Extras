@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Hopac.Extras", "Hopac.Extras\Hopac.Extras.fsproj", "{92C2DDA7-207C-4FDE-8F47-D428B401D092}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Hopac.Extras.Tests", "Hopac.Extras.Tests\Hopac.Extras.Tests.fsproj", "{662CD51E-393A-4B81-9594-EEFFA068DBA2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{92C2DDA7-207C-4FDE-8F47-D428B401D092}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92C2DDA7-207C-4FDE-8F47-D428B401D092}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92C2DDA7-207C-4FDE-8F47-D428B401D092}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92C2DDA7-207C-4FDE-8F47-D428B401D092}.Release|Any CPU.Build.0 = Release|Any CPU
+		{662CD51E-393A-4B81-9594-EEFFA068DBA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{662CD51E-393A-4B81-9594-EEFFA068DBA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{662CD51E-393A-4B81-9594-EEFFA068DBA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{662CD51E-393A-4B81-9594-EEFFA068DBA2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
