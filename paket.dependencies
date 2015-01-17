@@ -1,5 +1,11 @@
 source https://nuget.org/api/v2
 
+nuget FAKE
 nuget NUnit
 nuget Unquote
 nuget FsCheck
+nuget Octokit
+nuget SourceLink.Fake
+nuget NuGet.CommandLine
+
+github fsharp/FAKE modules/Octokit/Octokit.fsx
