@@ -3,9 +3,20 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Hopac.Extras", "Hopac.Extras\Hopac.Extras.fsproj", "{92C2DDA7-207C-4FDE-8F47-D428B401D092}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Hopac.Extras", "src\Hopac.Extras\Hopac.Extras.fsproj", "{92C2DDA7-207C-4FDE-8F47-D428B401D092}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Hopac.Extras.Tests", "Hopac.Extras.Tests\Hopac.Extras.Tests.fsproj", "{662CD51E-393A-4B81-9594-EEFFA068DBA2}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Hopac.Extras.Tests", "tests\Hopac.Extras.Tests\Hopac.Extras.Tests.fsproj", "{662CD51E-393A-4B81-9594-EEFFA068DBA2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".scripts", ".scripts", "{9652C6D0-C89D-4F13-BF26-82E06E24B3D4}"
+	ProjectSection(SolutionItems) = preProject
+		build.fsx = build.fsx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{18ECC41E-F22F-4D4F-9864-8FFA454F2950}"
+	ProjectSection(SolutionItems) = preProject
+		paket.dependencies = paket.dependencies
+		paket.lock = paket.lock
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

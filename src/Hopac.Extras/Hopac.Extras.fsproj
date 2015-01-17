@@ -60,13 +60,13 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Hopac">
-      <HintPath>..\lib\Hopac\Hopac.dll</HintPath>
+      <HintPath>..\..\lib\Hopac\Hopac.dll</HintPath>
     </Reference>
     <Reference Include="Hopac.Core">
-      <HintPath>..\lib\Hopac\Hopac.Core.dll</HintPath>
+      <HintPath>..\..\lib\Hopac\Hopac.Core.dll</HintPath>
     </Reference>
     <Reference Include="Hopac.Platform">
-      <HintPath>..\lib\Hopac\Hopac.Platform.dll</HintPath>
+      <HintPath>..\..\lib\Hopac\Hopac.Platform.dll</HintPath>
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
