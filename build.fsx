@@ -57,7 +57,7 @@ let gitHome = "https://github.com/" + gitOwner
 let gitName = "Hopac.Extras"
 
 // The url for the raw files hosted
-let gitRaw = environVarOrDefault "gitRaw" "https://raw.github.com/fsprojects"
+let gitRaw = environVarOrDefault "gitRaw" "https://raw.github.com/vasily-kirichenko"
 
 // --------------------------------------------------------------------------------------
 // END TODO: The rest of the file includes standard build steps
@@ -245,7 +245,7 @@ Target "All" DoNothing
 "Clean"
   ==> "AssemblyInfo"
   ==> "Build"
-  ==> "RunTests"
+  //==> "RunTests"
   //=?> ("GenerateReferenceDocs",isLocalBuild && not isMono)
   //=?> ("GenerateDocs",isLocalBuild && not isMono)
   ==> "All"
