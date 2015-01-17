@@ -4,4 +4,4 @@ F# library that contains practically useful concurrent abstractions implemented 
 
 ### Build status
 
-[![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/pxp9rbcfyrkqixic)](https://ci.appveyor.com/api/projects/status/pxp9rbcfyrkqixic) |
+[![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/pxp9rbcfyrkqixic)](https://ci.appveyor.com/api/projects/status/pxp9rbcfyrkqixic)
