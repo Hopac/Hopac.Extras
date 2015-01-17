@@ -94,6 +94,20 @@ let ``unblocks when an instance becomes available``() =
     takeOrThrow c2
 
 [<Test; Timeout(timeout)>]
+let ``does not deadlock if client quickly chooses another alternative``() = 
+    let creator = creator()
+    let pool = new ObjectPool<_>(creator.NewInstance, 1u)
+    // take an instance and block until the value is not taken from c
+    let c = ch()
+    start <| pool.WithInstanceJob (fun _ -> c <-- ())
+    // try to get the instance or "always"
+    run (pool.WithInstanceJob (fun _ -> Job.unit()) <|>? Alt.always())
+    run c
+    // check whether the pool has not deadlocked
+    start <| pool.WithInstanceJob (fun _ -> c <-- ())
+    takeOrThrow c
+
+[<Test; Timeout(timeout)>]
 let ``dispose all instances when pool is disposing``() =
     let creator = creator()
     let pool = new ObjectPool<_>(creator.NewInstance, 5u)
