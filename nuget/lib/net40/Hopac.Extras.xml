@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<doc>
+<assembly><name>Hopac.Extras</name></assembly>
+<members>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="M:Hopac.Extras.ObjectPool`1.WithInstanceJob``1(Microsoft.FSharp.Core.FSharpFunc{`0,``0})">
+<summary>
+ Gets an available instance from pool or create a new one, then passes it to function f,
+ then returns the instance back to the pool (even if the job returned by f raises an exception).
+</summary>
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="T:Hopac.Extras.ObjectPool`1">
+<summary>
+ Bounded pool of disposable objects. If number of given objects is equal to capacity then client will be blocked as it tries to get an instance. 
+ If an object in pool is not used more then inactiveTimeBeforeDispose period of time, it&apos;s disposed and removed from the pool. 
+ When the pool is disposing itself, it disposes all objects it caches first.
+</summary>
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+</members>
+</doc>
