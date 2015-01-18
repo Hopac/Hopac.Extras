@@ -78,15 +78,35 @@ type ObjectPool<'a when 'a :> IDisposable>(createNew: unit -> 'a, ?capacity: uin
         let replyCh = ch()
         reqCh <-+ (nack, replyCh) >>% replyCh
 
+    let disposeJob() = Job.start (IVar.tryFill dispose ()) >>. hasDisposed
+    let dispose() = run <| disposeJob()
+
     /// Gets an available instance from pool or create a new one, then passes it to function f,
-    /// then returns the instance back to the pool (even if the job returned by f raises an exception).
-    member __.WithInstanceJob (f: 'a -> #Job<unit>) =
+    /// then returns the instance back to the pool (even if f or the job returned by f raise exceptions).
+    member __.WithInstanceJob<'r> (f: 'a -> Job<'r>) : Alt<'r> =
         get() >>=? fun entry -> 
-            Job.tryFinallyJob (f entry.Value) (releaseCh <-- entry)
+            Job.tryFinallyJob 
+                (Job.delay (fun _ -> f entry.Value)) 
+                (releaseCh <-- entry)
+             
+    /// Gets an available instance from pool or create a new one, then passes it to function f,
+    /// then returns the instance back to the pool (even if f or the alt returned by f raise exceptions).
+    member __.WithInstanceAlt<'r> (f: 'a -> Alt<'r>) : Alt<'r> =
+        get() >>=? fun entry -> 
+            Job.tryFinallyJob 
+                (Job.delay (fun _ -> f entry.Value))  
+                (releaseCh <-- entry)
+
+    /// Creates a Hopac job that disposes the pool. Safe to run from inside another Hopac job.
+    member __.DisposeJob() = disposeJob()
+
+    /// Creates an Async that disposes the pool.
+    member __.DisposeAsync() = async { dispose() }
 
     interface IDisposable with
-        member __.Dispose() = run (Job.start (dispose <-= ()) >>. hasDisposed)
+        /// Runs disposing in ThreadPool and waits it ends.
+        member x.Dispose() = x.DisposeAsync() |> Async.RunSynchronously
 
 type ObjectPool with
     member x.WithInstance f = x.WithInstanceJob (fun a -> Job.result (f a))
-    member x.WithInstanceSync f = run (x.WithInstance f)
+    member x.WithInstanceAsync f = async { run (x.WithInstance f) }
