@@ -16,14 +16,13 @@ type Entry =
         member x.Dispose() = () //printfn "%A disposed." x
 
 let iteration () =
-    let pool = new ObjectPool<_>((fun _ -> { Value = 0 }), 100u)
-    let results = ref 0L
-    let jobs = 100000
-    List.init jobs (fun i -> pool.WithInstanceJob (fun _ -> job { Interlocked.Add(results, int64 i + 1L) |> ignore })) 
-    |> Job.conIgnore
+    Job.usingAsync (new ObjectPool<_>((fun _ -> { Value = 0 }), 100u)) <| fun pool ->
+        let jobs = 1000000
+        List.init jobs (fun _ -> pool.WithInstanceJob (fun _ -> Job.unit())) 
+        |> Job.conIgnore
     |> run
-    (pool :> IDisposable).Dispose()
 
+#time
 iteration()
 
 
