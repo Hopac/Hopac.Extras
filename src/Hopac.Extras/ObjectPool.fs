@@ -23,14 +23,14 @@ type ObjectPool<'a when 'a :> IDisposable>(createNew: unit -> 'a, ?capacity: uin
     let dispose = ivar()
     let hasDisposed = ivar()
     
-    let rec loop (available: 'a PoolEntry list, given: uint32, disposed: bool) = Job.delay <| fun _ ->
+    let rec loop (available: 'a PoolEntry list, given: uint32, disposing: bool) = Job.delay <| fun _ ->
         // an instance returns to pool
         let releaseAlt() =
             releaseCh >>=? fun instance ->
                 instance.LastUsed <- DateTime.UtcNow
                 Job.start (Timer.Global.timeOut inactiveTimeBeforeDispose >>.
                            (maybeExpiredCh <-+ instance)) >>.
-                loop (instance :: available, given - 1u, disposed)
+                loop (instance :: available, given - 1u, disposing)
         // request for an instance
         let reqAlt() =
             reqCh >>=? fun (nack, replyCh) ->
@@ -38,21 +38,21 @@ type ObjectPool<'a when 'a :> IDisposable>(createNew: unit -> 'a, ?capacity: uin
                     match available with
                     | [] -> PoolEntry.Create (createNew()), []
                     | h :: t -> h, t
-                (replyCh <-- instance >>.? loop (available, given + 1u, disposed)) <|>?
-                (nack >>.? loop (instance :: available, given, disposed))
+                (replyCh <-- instance >>.? loop (available, given + 1u, disposing)) <|>?
+                (nack >>.? loop (instance :: available, given, disposing))
         // an instance was inactive for too long
         let expiredAlt() =
             maybeExpiredCh >>=? fun instance ->
                 if DateTime.UtcNow - instance.LastUsed > inactiveTimeBeforeDispose 
                    && List.exists (fun x -> obj.ReferenceEquals(x, instance)) available then
                     instance.Value.Dispose()
-                    loop (available |> List.filter (fun x -> not <| obj.ReferenceEquals(x, instance)), given, disposed)
-                else loop (available, given, disposed)
+                    loop (available |> List.filter (fun x -> not <| obj.ReferenceEquals(x, instance)), given, disposing)
+                else loop (available, given, disposing)
 
         // the entire pool is disposing
         let disposeAlt() = dispose >>.? loop (available, given, true)
 
-        // immedeately available for picking if there is no given instances
+        // available for picking if all given instances has returned to the pool
         let waitUntilAllReleasedAlt() = Alt.guard << Job.delay <| fun _ ->
             if given = 0u then 
                 // dispose all instances
@@ -63,10 +63,11 @@ type ObjectPool<'a when 'a :> IDisposable>(createNew: unit -> 'a, ?capacity: uin
             else 
                 Job.result <| Alt.never()
 
-        if disposed then
+        if disposing then    
+            // if the pool is disposing, we are only waiting for given instances to return
             releaseAlt() <|>? waitUntilAllReleasedAlt()
         elif given < capacity then
-            // if number of given objects is not reach the capacity, synchronize on request channel as well
+            // if number of given objects has not reached the capacity, synchronize on request channel as well
             releaseAlt() <|>? expiredAlt() <|>? disposeAlt() <|>? reqAlt()
         else
             releaseAlt() <|>? expiredAlt() <|>? disposeAlt()
