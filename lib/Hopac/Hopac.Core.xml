@@ -162,6 +162,12 @@
         <member name="M:Hopac.Core.MVarFill`1.#ctor(Hopac.MVar{`0},`0)">
             Internal implementation detail.
         </member>
+        <member name="T:Hopac.Once`1">
+            
+        </member>
+        <member name="M:Hopac.Once`1.#ctor(`0)">
+            
+        </member>
         <member name="M:Hopac.Core.WaitQueue.AddGiver``1(Hopac.Core.Send{``0}@,``0,System.Int32,Hopac.Core.Pick,Hopac.Core.Cont{Microsoft.FSharp.Core.Unit})">
             <summary>Note that this specifically tries to reuse a giver from the
             queue.  This reduces the chance of space leaks.</summary>

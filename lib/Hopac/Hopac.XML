@@ -24,6 +24,17 @@
  Represents a job to be embedded within a computation built upon jobs.
 </summary>
 </member>
+<member name="M:Hopac.IAsyncDisposable.DisposeAsync">
+<summary>
+ Returns a job that needs to be executed to dispose the resource.
+</summary>
+</member>
+<member name="T:Hopac.IAsyncDisposable">
+<summary>
+ An experimental interface for asynchronously disposable resources.  See
+ also: `usingAsync`.
+</summary>
+</member>
 <member name="">
 
 </member>
@@ -224,9 +235,15 @@
  exception.  `raises e` is equivalent to `delay &lt;| fun () -&gt; raise e`.
 </summary>
 </member>
+<member name="M:Hopac.Alt.once``1(``0)">
+<summary>
+ Returns an alternative that can be committed to once and that produces the
+ given value.
+</summary>
+</member>
 <member name="M:Hopac.Alt.zero">
 <summary>
- Return an alternative that is never available.  `zero ()` is an optimized
+ Returns an alternative that is never available.  `zero ()` is an optimized
  version of `never ()`.
 </summary>
 </member>
@@ -936,11 +953,20 @@
  result of the job or the exception raised by the job.
 </summary>
 </member>
+<member name="M:Hopac.Job.usingAsync``3(``0,Microsoft.FSharp.Core.FSharpFunc{``0,``1})">
+<summary>
+ Implements an experimental `use` like construct for asynchronously
+ disposable resources.  The `DisposeAsync` method of the asynchronously
+ disposable resource is called to construct a job that is later used to
+ dispose the resource after the constructed job returns.  See also:
+ `abort`, `using`.
+</summary>
+</member>
 <member name="M:Hopac.Job.using``3(``0,Microsoft.FSharp.Core.FSharpFunc{``0,``1})">
 <summary>
  Implements the `use` construct for jobs.  The `Dispose` method of the
  given disposable object is called after running the job constructed with
- the disposable object.  See also: `abort`.
+ the disposable object.  See also: `abort`, `usingAsync`.
 </summary>
 </member>
 <member name="M:Hopac.Job.tryFinallyJob``1(Hopac.Job{``0},Hopac.Job{Microsoft.FSharp.Core.Unit})">
