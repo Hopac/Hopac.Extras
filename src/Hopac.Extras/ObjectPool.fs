@@ -72,20 +72,12 @@ type ObjectPool<'a when 'a :> IDisposable>(createNew: unit -> 'a, ?capacity: uin
 
     /// Gets an available instance from pool or create a new one, then passes it to function f,
     /// then returns the instance back to the pool (even if f or the job returned by f raise exceptions).
-    member __.WithInstanceJob<'r> (f: 'a -> Job<'r>) : Alt<'r> =
+    member __.WithInstanceJob (f: 'a -> #Job<'r>) : Alt<'r> =
         get() >>=? fun entry -> 
             Job.tryFinallyJob 
                 (Job.delay (fun _ -> f entry.Value)) 
                 (releaseCh <-- entry)
              
-    /// Gets an available instance from pool or create a new one, then passes it to function f,
-    /// then returns the instance back to the pool (even if f or the alt returned by f raise exceptions).
-    member __.WithInstanceAlt<'r> (f: 'a -> Alt<'r>) : Alt<'r> =
-        get() >>=? fun entry -> 
-            Job.tryFinallyJob 
-                (Job.delay (fun _ -> f entry.Value))  
-                (releaseCh <-- entry)
-
     interface IAsyncDisposable with
         member __.DisposeAsync() = IVar.tryFill dispose () >>. hasDisposed
 
