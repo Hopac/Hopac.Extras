@@ -110,20 +110,19 @@ let ``does not deadlock if client quickly chooses another alternative``() =
 [<Test; Timeout(timeout)>]
 let ``dispose all instances when pool is disposing``() =
     let creator = creator()
-    let pool = new ObjectPool<_>(creator.NewInstance, 5u)
-    let cs =
-        [1..5]
-        |> List.map (fun _ ->
-            let s, c = ch(), ch()
-            start <| pool.WithInstanceJob (fun _ -> Ch.give s () >>. Ch.give c ())
-            s, c)
-    // ensure all jobs started and wait on "c" channels
-    cs |> List.map fst |> Job.conIgnore |> run
-    creator.CreatedInstances() |> List.map (fun e -> e.Disposed) =? List.init 5 (fun _ -> false)
-    // unblock all jobs
-    cs |> List.map snd |> Job.conIgnore |> run
-    (pool :> IDisposable).Dispose()
-
+    Job.usingAsync (new ObjectPool<_>(creator.NewInstance, 5u)) <| fun pool ->
+        let cs =
+            [1..5]
+            |> List.map (fun _ ->
+                let s, c = ch(), ch()
+                start <| pool.WithInstanceJob (fun _ -> Ch.give s () >>. Ch.give c ())
+                s, c)
+        // ensure all jobs started and wait on "c" channels
+        cs |> List.map fst |> Job.conIgnore |> run
+        creator.CreatedInstances() |> List.map (fun e -> e.Disposed) =? List.init 5 (fun _ -> false)
+        // unblock all jobs
+        cs |> List.map snd |> Job.conIgnore
+    |> run
     creator.CreatedInstances() |> List.map (fun e -> e.Disposed) =? List.init 5 (fun _ -> true)
 
 [<Test; Timeout(timeout)>]
@@ -141,7 +140,7 @@ let ``instance is disposed and removed from pool after it's been unused for cert
     instance.Disposed =? true
     
 [<Test; Timeout(timeout)>]
-let ``instance is not disposed and removed from pool if it's reused before it becomes obsolete``() =
+let ``instance is not disposed and is not removed from pool if it's reused before it becomes obsolete``() =
     let creator = creator()
     let inactiveTime = TimeSpan.FromMilliseconds 500.
     let pool = new ObjectPool<_>(creator.NewInstance, 1u, inactiveTime)
@@ -196,12 +195,11 @@ let setUp() = Arb.register<Generators>() |> ignore
 let ``all jobs are executed``() =
     let prop (TestCase (capacity, jobs)) =
         let creator = creator()
-        let pool = new ObjectPool<_>(creator.NewInstance, capacity)
         let results = ref 0
-        List.init jobs (fun i -> pool.WithInstanceJob (fun _ -> job { Interlocked.Add(results, i + 1) |> ignore })) 
-        |> Job.conIgnore
+        Job.usingAsync (new ObjectPool<_>(creator.NewInstance, capacity)) <| fun pool ->
+            List.init jobs (fun i -> pool.WithInstanceJob (fun _ -> job { Interlocked.Add(results, i + 1) |> ignore })) 
+            |> Job.conIgnore
         |> run
-        (pool :> IDisposable).Dispose()
         let expected = List.sum [1..jobs]
         //printfn "Expected = %A" expected 
         //printfn "Actual = %A" !results
@@ -213,11 +211,10 @@ let ``all jobs are executed``() =
 let ``does not create more instances than capacity``() =
     let prop (TestCase (capacity, jobs)) =
         let creator = creator()
-        let pool = new ObjectPool<_>(creator.NewInstance, capacity)
-        List.init jobs (fun _ -> pool.WithInstanceJob (fun _ -> Job.unit())) 
-        |> Job.conIgnore
+        Job.usingAsync (new ObjectPool<_>(creator.NewInstance, capacity)) <| fun pool ->
+            List.init jobs (fun _ -> pool.WithInstanceJob (fun _ -> Job.unit())) 
+            |> Job.conIgnore
         |> run
-        (pool :> IDisposable).Dispose()
         let actual = creator.CreatedInstances() |> List.length
         //printfn "Expected: < %A" capacity
         //printfn "Actual = %A" actual
