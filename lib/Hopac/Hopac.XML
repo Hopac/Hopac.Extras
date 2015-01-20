@@ -24,17 +24,6 @@
  Represents a job to be embedded within a computation built upon jobs.
 </summary>
 </member>
-<member name="M:Hopac.IAsyncDisposable.DisposeAsync">
-<summary>
- Returns a job that needs to be executed to dispose the resource.
-</summary>
-</member>
-<member name="T:Hopac.IAsyncDisposable">
-<summary>
- An experimental interface for asynchronously disposable resources.  See
- also: `usingAsync`.
-</summary>
-</member>
 <member name="">
 
 </member>
@@ -121,286 +110,220 @@
  Expression builder type for jobs.
 </summary>
 </member>
+<member name="M:Hopac.IAsyncDisposable.DisposeAsync">
+<summary>
+ Returns a job that needs to be executed to dispose the resource.
+</summary>
+</member>
+<member name="T:Hopac.IAsyncDisposable">
+<summary>
+ An experimental interface for asynchronously disposable resources.  See
+ also: `usingAsync`.
+</summary>
+</member>
 <member name="T:Hopac.Void">
 <summary>
  A type that has no public constructors to indicate that a job or function
  does not return normally.
 </summary>
 </member>
-<member name="M:Hopac.Alt.paranoid``1(Hopac.Alt{``0})">
+<member name="M:Hopac.Infixes.op_LessLessMinusPlus``1(Hopac.Mailbox{``0},``0)">
 <summary>
- Given an alternative, creates a new alternative that behaves exactly like
- the given alternative, except that the new alternative obviously cannot be
- directly downcast to the underlying type of the given alternative.  This
- operation is provided for debugging purposes.  You can always break
- abstractions using reflection.  See also: `Job.paranoid`.
+ Creates a job that sends the given value to the specified mailbox.  This
+ operation never blocks.  `xMb &lt;&lt;-+ x` is equivalent to `Mailbox.send xMb
+ x`.
 </summary>
 </member>
-<member name="M:Hopac.Alt.tryFinallyJob``1(Hopac.Alt{``0},Hopac.Job{Microsoft.FSharp.Core.Unit})">
+<member name="M:Hopac.Infixes.op_LessLessMinusEquals``1(Hopac.MVar{``0},``0)">
 <summary>
- Implements a variation of the `try-finally` exception handling construct
- for alternatives.  The given action, specified as a job, is executed after
- the alternative has been committed to, whether the alternative fails or
- completes successfully.  Note that the action is not executed in case the
- alternative is not committed to.  Use `withNack` to attach the action to
- the non-committed case.
+ Creates a job that writes the given value to the serialized variable.  It
+ is an error to write to a `MVar` that is full.  This assumption may be
+ used to optimize the implementation and incorrect usage leads to undefined
+ behavior.  `xM &lt;&lt;-= x` is equivalent to `MVar.fill xM x`.
 </summary>
 </member>
-<member name="M:Hopac.Alt.tryFinallyFun``1(Hopac.Alt{``0},Microsoft.FSharp.Core.FSharpFunc{Microsoft.FSharp.Core.Unit,Microsoft.FSharp.Core.Unit})">
+<member name="M:Hopac.Infixes.op_LessMinusEqualsBang``1(Hopac.IVar{``0},System.Exception)">
 <summary>
- Implements a variation of the `try-finally` exception handling construct
- for alternatives.  The given action, specified as a function, is executed
- after the alternative has been committed to, whether the alternative fails
- or completes successfully.  Note that the action is not executed in case
- the alternative is not committed to.  Use `withNack` to attach the action
- to the non-committed case.
+ Creates a job that writes the given exception to the given write once
+ variable.  It is an error to write to a single `IVar` more than once.
+ This assumption may be used to optimize the implementation and incorrect
+ usage leads to undefined behavior.  `xI &lt;-=! e` is equivalent to
+ `IVar.fillFailure xI e`.
 </summary>
 </member>
-<member name="M:Hopac.Alt.tryIn``4(Hopac.Alt{``0},Microsoft.FSharp.Core.FSharpFunc{``0,``1},Microsoft.FSharp.Core.FSharpFunc{System.Exception,``3})">
+<member name="M:Hopac.Infixes.op_LessMinusEquals``1(Hopac.IVar{``0},``0)">
 <summary>
- Implements the `try-in-unless` exception handling construct for
- alternatives.  Both of the continuation jobs `&apos;x -&gt; Job&lt;&apos;y&gt;`, for success,
- and `exn -&gt; Job&lt;&apos;y&gt;`, for failure, are invoked from a tail position.
-
- Exceptions from both before and after the commit point can be handled.  An
- exception that occurs before a commit point, from the user code in a
- `guard`, `delay`, or `withNack`, results in treating that exception as the
- commit point.
-
- Note you can also use function or job level exception handling before the
- commit point within the user code in a `guard`, `delay`, or `withNack`.
+ Creates a job that writes to the given write once variable.  It is an
+ error to write to a single `IVar` more than once.  This assumption may be
+ used to optimize the implementation and incorrect usage leads to undefined
+ behavior.  `xI &lt;-= x` is equivalent to `IVar.fill xI x`.
 </summary>
 </member>
-<member name="M:Hopac.Alt.map``2(Microsoft.FSharp.Core.FSharpFunc{``0,``1},Hopac.Alt{``0})">
-<summary>
- `xA |&gt; map x2y` is equivalent to `xA |&gt; wrap (x2y &gt;&gt; result)`.  This is
- the same as `|&gt;&gt;?` with the arguments flipped.
-</summary>
-</member>
-<member name="M:Hopac.Alt.wrap``3(Microsoft.FSharp.Core.FSharpFunc{``0,``1},Hopac.Alt{``0})">
-<summary>
- Creates an alternative whose result is passed to the given job constructor
- and processed with the resulting job after the given alternative has been
- committed to.  This is the same as `&gt;&gt;=?` with the arguments flipped.
-</summary>
-</member>
-<member name="M:Hopac.Alt.chooser``2(System.Collections.Generic.IEnumerable{``0})">
-<summary>
- `chooser xAs` is like `choose xAs` except that the order in which the
- alternatives from the sequence are considered will be determined at random
- each time the alternative is used.  See also: `&lt;~&gt;?`.
-</summary>
-</member>
-<member name="M:Hopac.Alt.choose``2(System.Collections.Generic.IEnumerable{``0})">
-<summary>
- Creates an alternative that is available when any one of the given
- alternatives is.  See also: `&lt;|&gt;?`.
-
- Note that `choose []` is equivalent to `never ()`.
-</summary>
-</member>
-<member name="M:Hopac.Alt.withNack``3(Microsoft.FSharp.Core.FSharpFunc{Hopac.Promise{Microsoft.FSharp.Core.Unit},``0})">
-<summary>
- Creates an alternative that is computed at instantiation time with the
- given job constructed with a negative acknowledgment alternative.  See
- also: `guard`.
-</summary>
-</member>
-<member name="M:Hopac.Alt.random``2(Microsoft.FSharp.Core.FSharpFunc{System.UInt64,``0})">
-<summary>
- Creates an alternative that is computed at instantiation time with the
- the given function, which will be called with a pseudo random 64-bit
- unsigned integer.  See also: `Random.bind`.
-</summary>
-</member>
-<member name="M:Hopac.Alt.delay``2(Microsoft.FSharp.Core.FSharpFunc{Microsoft.FSharp.Core.Unit,``0})">
-<summary>
- Creates an alternative that is computed at instantiation time with the
- given thunk.
-
- `delay` is an optimized weaker form of `guard` that can be used when no
- concurrent operations beyond the returned alternative are required by the
- encapsulated request protocol.
-</summary>
-</member>
-<member name="M:Hopac.Alt.guard``2(Hopac.Job{``0})">
-<summary>
- Creates an alternative that is computed at instantiation time with the
- given job.  See also: `withNack`.
-</summary>
-</member>
-<member name="M:Hopac.Alt.raises``1(System.Exception)">
-<summary>
- Creates an alternative that has the effect of raising the specified
- exception.  `raises e` is equivalent to `delay &lt;| fun () -&gt; raise e`.
-</summary>
-</member>
-<member name="M:Hopac.Alt.once``1(``0)">
-<summary>
- Returns an alternative that can be committed to once and that produces the
- given value.
-</summary>
-</member>
-<member name="M:Hopac.Alt.zero">
-<summary>
- Returns an alternative that is never available.  `zero ()` is an optimized
- version of `never ()`.
-</summary>
-</member>
-<member name="M:Hopac.Alt.never``1">
-<summary>
- Creates an alternative that is never available.
-
- Note that synchronizing on `never ()`, without other alternatives, is
- equivalent to performing `abort ()`.
-</summary>
-</member>
-<member name="M:Hopac.Alt.unit">
-<summary>
- Returns an alternative that is always available and results in the unit
- value.  `unit ()` is an optimized version of `always ()`.
-</summary>
-</member>
-<member name="M:Hopac.Alt.always``1(``0)">
-<summary>
- Creates an alternative that is always available and results in the given
- value.
-
- Note that when there are alternatives immediately available in a choice,
- the first such alternative will be committed to.
-</summary>
-</member>
-<member name="M:Hopac.Alt.Infixes.op_GreaterGreaterBangQmark``2(Hopac.Alt{``0},System.Exception)">
-<summary>
- `xA &gt;&gt;!? e` is equivalent to `xA &gt;&gt;=? fun _ -&gt; raise e`.
-</summary>
-</member>
-<member name="M:Hopac.Alt.Infixes.op_GreaterGreaterPercentQmark``2(Hopac.Alt{``0},``1)">
-<summary>
- `xA &gt;&gt;%? y` is equivalent to `xA &gt;&gt;=? fun _ -&gt; result y`.
-</summary>
-</member>
-<member name="M:Hopac.Alt.Infixes.op_BarGreaterGreaterQmark``2(Hopac.Alt{``0},Microsoft.FSharp.Core.FSharpFunc{``0,``1})">
-<summary>
- `xA |&gt;&gt;? x2y` is equivalent to `xA &gt;&gt;=? (x2y &gt;&gt; result)`.  This is the
- same as `map` with the arguments flipped.
-</summary>
-</member>
-<member name="M:Hopac.Alt.Infixes.op_DotGreaterGreaterQmark``2(Hopac.Alt{``0},Hopac.Job{``1})">
-<summary>
- `xA .&gt;&gt;? yJ` is equivalent to `xA &gt;&gt;=? fun x -&gt; yJ &gt;&gt;% x`.
-</summary>
-</member>
-<member name="M:Hopac.Alt.Infixes.op_GreaterGreaterDotQmark``2(Hopac.Alt{``0},Hopac.Job{``1})">
-<summary>
- `xA &gt;&gt;.? yJ` is equivalent to `xA &gt;&gt;=? fun _ -&gt; yJ`.
-</summary>
-</member>
-<member name="M:Hopac.Alt.Infixes.op_GreaterGreaterEqualsQmark``3(Hopac.Alt{``0},Microsoft.FSharp.Core.FSharpFunc{``0,``1})">
-<summary>
- Creates an alternative whose result is passed to the given job
- constructor and processed with the resulting job after the given
- alternative has been committed to.  This is the same as `wrap` with the
- arguments flipped.
-</summary>
-</member>
-<member name="M:Hopac.Alt.Infixes.op_LessTwiddleGreaterQmark``1(Hopac.Alt{``0},Hopac.Alt{``0})">
-<summary>
- `xA1 &lt;~&gt;? xA2` is like `xA1 &lt;|&gt;? xA2` except that the order in which
- `xA1` and `xA2` are considered is determined at random every time the
- alternative is used.  See also: `chooser`.
-</summary>
-</member>
-<member name="M:Hopac.Alt.Infixes.op_LessBarGreaterQmark``1(Hopac.Alt{``0},Hopac.Alt{``0})">
-<summary>
- Creates an alternative that is available when either of the given
- alternatives is available.  `xA1 &lt;|&gt;? xA2` is an optimized version of
- `choose [xA1; xA2]`.
-</summary>
-</member>
-<member name="T:Hopac.Alt.Infixes">
-<summary>
- Infix operators on alternatives.  You can open this module to bring all
- of the infix operators into scope.
-</summary>
-</member>
-<member name="T:Hopac.Alt">
-<summary>
- Operations on first-class synchronous operations or alternatives.
-</summary>
-</member>
-<member name="M:Hopac.Ch.send``1(Hopac.Ch{``0},``0)">
+<member name="M:Hopac.Infixes.op_LessMinusPlus``1(Hopac.Ch{``0},``0)">
 <summary>
  Creates a job that sends a value to another job on the given channel.  A
  send operation is asynchronous.  In other words, a send operation does not
- wait for another job to give the value to.
+ wait for another job to give the value to.  `xCh &lt;-+ x` is equivalent to
+ `Ch.send xCh x`.
+
+ Note that channels have been optimized for synchronous operations; an
+ occasional send can be efficient, but when sends are queued, performance
+ maybe be significantly worse than with a `Mailbox` optimized for
+ buffering.
 </summary>
 </member>
-<member name="M:Hopac.Ch.take``1(Hopac.Ch{``0})">
-<summary>
- Creates an alternative that, at instantiation time, offers to take a value
- from another job on the given channel, and becomes available when another
- job offers to give a value.
-</summary>
-</member>
-<member name="M:Hopac.Ch.give``1(Hopac.Ch{``0},``0)">
+<member name="M:Hopac.Infixes.op_LessMinusMinus``1(Hopac.Ch{``0},``0)">
 <summary>
  Creates an alternative that, at instantiation time, offers to give the
  given value on the given channel, and becomes available when another job
- offers to take the value.
+ offers to take the value.  `xCh &lt;-- x` is equivalent to `Ch.give xCh x`.
 </summary>
 </member>
-<member name="M:Hopac.Ch.create``1">
+<member name="T:Hopac.Infixes">
 <summary>
- Creates a job that creates a new channel.
+ Additional infix operators.  You can open this module to bring all of the
+ infix operators into scope.
 </summary>
 </member>
-<member name="M:Hopac.Ch.Try.take``1(Hopac.Ch{``0})">
+<member name="P:Hopac.Scheduler.Create.TopLevelHandler">
 <summary>
- Creates a job that attempts to take a value from another job waiting on
- the given channel.  Note that the other side of the communication must
- be blocked on the channel for communication to happen.
+ Specifies the top level exception handler job constructor of the
+ scheduler.  When a job fails with an otherwise unhandled exception,
+ the job is killed and a new job is constructed with the top level
+ handler constructor and then started.  To avoid infinite loops, in
+ case the top level handler job raises exceptions, it is simply killed
+ after printing a message to the console.  The default top level
+ handler simply prints out a message to the console.
 </summary>
 </member>
-<member name="M:Hopac.Ch.Try.give``1(Hopac.Ch{``0},``0)">
+<member name="P:Hopac.Scheduler.Create.NumWorkers">
 <summary>
- Creates a job that attempts to give a value to another job waiting on
- the given channel.  The result indicates whether a value was given or
- not.  Note that the other side of the communication must be blocked on
- the channel for communication to happen.
+ Number of worker threads.  Using more than
+ `Environment.ProcessorCount` is not optimal and may, in some cases,
+ significantly reduce performance.  The default is
+ `Environment.ProcessorCount`.
 </summary>
 </member>
-<member name="T:Hopac.Ch.Try">
+<member name="P:Hopac.Scheduler.Create.MaxStackSize">
 <summary>
- Polling, or non-blocking, operations on synchronous channels.
+ Specifies the maximum stack size for worker threads.  The default
+ is to use the default maximum stack size of the `Thread` class.
 </summary>
 </member>
-<member name="M:Hopac.Ch.Global.send``1(Hopac.Ch{``0},``0)">
+<member name="P:Hopac.Scheduler.Create.IdleHandler">
 <summary>
- Sends the given value to the specified channel.
+ Specifies the idle handler for workers.  The worker idle handler is
+ run whenever an individual worker runs out of work.  The idle handler
+ must return an integer value that specifies how many milliseconds the
+ worker is allowed to sleep.  `Timeout.Infinite` puts the worker into
+ sleep until the scheduler explicitly wakes it up.  `0` means that the
+ idle handler found some new work and the worker should immediately
+ look for it.
+</summary>
+</member>
+<member name="P:Hopac.Scheduler.Create.Foreground">
+<summary>
+ Specifies whether worker threads are run as background threads or as
+ foreground threads.  The default is to run workers as background
+ threads.  If you want to run worker threads as foreground threads,
+ then you will have to explicitly kill the worker threads.  Using
+ foreground threads is probably preferable if your application
+ dynamically creates and kills local schedulers to make sure the
+ worker threads are properly killed.
+</summary>
+</member>
+<member name="P:Hopac.Scheduler.Create.Def">
+<summary>
+ Default options.
+</summary>
+</member>
+<member name="T:Hopac.Scheduler.Create">
+<summary>
+ A record of scheduler configuration options.
+</summary>
+</member>
+<member name="M:Hopac.Scheduler.kill(Hopac.Scheduler)">
+<summary>
+ Kills the worker threads of the scheduler one-by-one.  This should only be
+ used with a local scheduler that is known to be idle.
+</summary>
+</member>
+<member name="M:Hopac.Scheduler.wait(Hopac.Scheduler)">
+<summary>
+ Waits until the scheduler becomes completely idle.
+
+ Note that for this to make sense, the scheduler should be a local
+ scheduler that your program manages explicitly.
+</summary>
+</member>
+<member name="M:Hopac.Scheduler.server(Hopac.Scheduler,Hopac.Job{Hopac.Void})">
+<summary>
+ Like `Scheduler.start`, but the given job is known never to return
+ normally, so the job can be spawned in an even more lightweight manner.
+</summary>
+</member>
+<member name="M:Hopac.Scheduler.queueIgnore``1(Hopac.Scheduler,Hopac.Job{``0})">
+<summary>
+ `queueIgnore xJ` is equivalent to `Job.Ignore xJ |&gt; queue`.
+</summary>
+</member>
+<member name="M:Hopac.Scheduler.queue(Hopac.Scheduler,Hopac.Job{Microsoft.FSharp.Core.Unit})">
+<summary>
+ Queues the given job for execution on the scheduler.
 
  Note that using this function in a job workflow is not optimal and you
- should use `Ch.send` instead.
+ should use `Job.queue` instead.
 </summary>
 </member>
-<member name="T:Hopac.Ch.Global">
+<member name="M:Hopac.Scheduler.startIgnore``1(Hopac.Scheduler,Hopac.Job{``0})">
 <summary>
- Operations bound to the global scheduler.
+ `startIgnore xJ` is equivalent to `Job.Ignore xJ |&gt; start`.
 </summary>
 </member>
-<member name="M:Hopac.Ch.Now.create``1">
+<member name="M:Hopac.Scheduler.start(Hopac.Scheduler,Hopac.Job{Microsoft.FSharp.Core.Unit})">
 <summary>
- Creates a new channel.
+ Starts running the given job, but does not wait for the job to finish.
+
+ Note that using this function in a job workflow is not optimal and you
+ should use `Job.start` instead.
 </summary>
 </member>
-<member name="T:Hopac.Ch.Now">
+<member name="M:Hopac.Scheduler.startWithActions``1(Hopac.Scheduler,Microsoft.FSharp.Core.FSharpFunc{System.Exception,Microsoft.FSharp.Core.Unit},Microsoft.FSharp.Core.FSharpFunc{``0,Microsoft.FSharp.Core.Unit},Hopac.Job{``0})">
 <summary>
- Immediate or non-workflow operations on synchronous channels.
+ Starts running the given job, but does not wait for the job to finish.
+ Upon the failure or success of the job, one of the given actions is called
+ once.  See also: `abort`.
+
+ Note that using this function in a job workflow is not optimal and you
+ should instead use `Job.start` with desired Job exception handling
+ construct (e.g. `Job.tryIn` or `Job.catch`).
 </summary>
 </member>
-<member name="T:Hopac.Ch">
+<member name="M:Hopac.Scheduler.create(Hopac.Scheduler.Create)">
 <summary>
- Operations on synchronous channels.
+ Creates a new local scheduler.
+
+ Note that a local scheduler does not automatically implement services such
+ as the global wall-clock timer.
+</summary>
+</member>
+<member name="M:Hopac.Scheduler.Global.setCreate(Hopac.Scheduler.Create)">
+<summary>
+ Sets options for creating the global scheduler.  This must be called
+ before invoking any Hopac functionality that implicitly creates the
+ global scheduler.
+</summary>
+</member>
+<member name="T:Hopac.Scheduler.Global">
+<summary>
+ Operations on the global scheduler.
+</summary>
+</member>
+<member name="T:Hopac.Scheduler">
+<summary>
+ Operations on schedulers.  Use of this module requires more intimate
+ knowledge of Hopac, but may allow adapting Hopac to special application
+ requirements.
 </summary>
 </member>
 <member name="M:Hopac.Extensions.Task.startJob.Static``1(Hopac.Job{``0})">
@@ -660,6 +583,288 @@
  part of the existing modules and types.
 </summary>
 </member>
+<member name="M:Hopac.Lock.duringJob``1(Hopac.Lock,Hopac.Job{``0})">
+<summary>
+ Creates a job that runs the given job so that the lock is held during the
+ execution of the given job.
+</summary>
+</member>
+<member name="M:Hopac.Lock.duringFun``1(Hopac.Lock,Microsoft.FSharp.Core.FSharpFunc{Microsoft.FSharp.Core.Unit,``0})">
+<summary>
+ Creates a job that calls the given function so that the lock is held
+ during the execution of the function.
+</summary>
+</member>
+<member name="M:Hopac.Lock.create">
+<summary>
+ Creates a job that creates a new mutual exclusion lock.
+</summary>
+</member>
+<member name="M:Hopac.Lock.Now.create">
+<summary>
+ Creates a new lock.
+</summary>
+</member>
+<member name="T:Hopac.Lock.Now">
+<summary>
+ Immediate or non-workflow operations on locks.
+</summary>
+</member>
+<member name="T:Hopac.Lock">
+<summary>
+ Operations on mutual exclusion locks.
+</summary>
+</member>
+<member name="M:Hopac.Promise.read``1(Hopac.Promise{``0})">
+<summary>
+ Creates an alternative for reading the promise.  If the promise was
+ delayed, it is started as a separate job.
+</summary>
+</member>
+<member name="M:Hopac.Promise.queue``1(Hopac.Job{``0})">
+<summary>
+ Creates a job that creates a promise, whose value is computed with the
+ given job, which is scheduled to be run as a separate concurrent job.  See
+ also: `start`, `Job.queue`.
+</summary>
+</member>
+<member name="M:Hopac.Promise.start``1(Hopac.Job{``0})">
+<summary>
+ Creates a job that creates a promise, whose value is computed with the
+ given job, which is immediately started to run as a separate concurrent
+ job.  See also: `queue`, `Job.queue`.
+</summary>
+</member>
+<member name="M:Hopac.Promise.Now.get``1(Hopac.Promise{``0})">
+<summary>
+ Returns the value or raises the failure exception that the promise has
+ been fulfilled with.  It is considered an error if the promise has not
+ yet been fulfilled.
+
+ This operation is mainly provided for advanced uses of promises such as
+ when creating more complex data structures that make internal use of
+ promises.  Using this to poll promises is not generally a good idea.
+</summary>
+</member>
+<member name="M:Hopac.Promise.Now.isFulfilled``1(Hopac.Promise{``0})">
+<summary>
+ Returns true iff the given promise has already been fulfilled (either
+ with a value or with a failure).
+
+ This operation is mainly provided for advanced uses of promises such as
+ when creating more complex data structures that make internal use of
+ promises.  Using this to poll promises is not generally a good idea.
+</summary>
+</member>
+<member name="M:Hopac.Promise.Now.withFailure``1(System.Exception)">
+<summary>
+ Creates a promise with the given failure exception.
+</summary>
+</member>
+<member name="M:Hopac.Promise.Now.withValue``1(``0)">
+<summary>
+ Creates a promise with the given value.
+</summary>
+</member>
+<member name="M:Hopac.Promise.Now.delay``1(Hopac.Job{``0})">
+<summary>
+ Creates a promise whose value is computed lazily with the given job when
+ an attempt is made to read the promise.  Although the job is not started
+ immediately, the effect is that the delayed job will be run as a
+ separate job, which means it is possible to communicate with it as long
+ the delayed job is started before trying to communicate with it.
+</summary>
+</member>
+<member name="T:Hopac.Promise.Now">
+<summary>
+ Immediate or non-workflow operations on promises.
+</summary>
+</member>
+<member name="T:Hopac.Promise">
+<summary>
+ Operations on promises.
+</summary>
+</member>
+<member name="M:Hopac.Mailbox.take``1(Hopac.Mailbox{``0})">
+<summary>
+ Creates an alternative that becomes available when the mailbox contains at
+ least one value and, if committed to, takes a value from the mailbox.
+</summary>
+</member>
+<member name="M:Hopac.Mailbox.send``1(Hopac.Mailbox{``0},``0)">
+<summary>
+ Creates a job that sends the given value to the specified mailbox.  This
+ operation never blocks.
+</summary>
+</member>
+<member name="M:Hopac.Mailbox.create``1">
+<summary>
+ Creates a job that creates a new mailbox.
+</summary>
+</member>
+<member name="M:Hopac.Mailbox.Global.send``1(Hopac.Mailbox{``0},``0)">
+<summary>
+ Sends the given value to the specified mailbox.
+
+ Note that using this function in a job workflow is not optimal and you
+ should use `Mailbox.send` instead.
+</summary>
+</member>
+<member name="T:Hopac.Mailbox.Global">
+<summary>
+ Operations bound to the global scheduler.
+</summary>
+</member>
+<member name="M:Hopac.Mailbox.Now.create``1">
+<summary>
+ Creates a new mailbox.
+</summary>
+</member>
+<member name="T:Hopac.Mailbox.Now">
+<summary>
+ Immediate or non-workflow operations on buffered mailboxes.
+</summary>
+</member>
+<member name="T:Hopac.Mailbox">
+<summary>
+ Operations on buffered mailboxes.
+</summary>
+</member>
+<member name="M:Hopac.MVar.take``1(Hopac.MVar{``0})">
+<summary>
+ Creates an alternative that becomes available when the variable contains a
+ value and, if committed to, takes the value from the variable.
+</summary>
+</member>
+<member name="M:Hopac.MVar.read``1(Hopac.MVar{``0})">
+<summary>
+ Creates an alternative that becomes available when the variable contains a
+ value and, if committed to, read the value from the variable.
+</summary>
+</member>
+<member name="M:Hopac.MVar.modifyJob``3(Microsoft.FSharp.Core.FSharpFunc{``0,``1},Hopac.MVar{``0})">
+<summary>
+ Creates an alternative that takes the value of the serialized variable and
+ then fills the variable with the result of performing the given job.
+
+ Note that this operation is not atomic as such.  However, it is a common
+ programming pattern to make it so that only the job that has emptied an
+ `MVar` by taking a value from it is allowed to fill the `MVar`.  Such an
+ access pattern makes operations on the `MVar` appear as atomic.
+</summary>
+</member>
+<member name="M:Hopac.MVar.modifyFun``2(Microsoft.FSharp.Core.FSharpFunc{``0,System.Tuple{``0,``1}},Hopac.MVar{``0})">
+<summary>
+ Creates an alternative that takes the value of the serialized variable and
+ then fills the variable with the result of performing the given function.
+
+ Note that this operation is not atomic as such.  However, it is a common
+ programming pattern to make it so that only the job that has emptied an
+ `MVar` by taking a value from it is allowed to fill the `MVar`.  Such an
+ access pattern makes operations on the `MVar` appear as atomic.
+</summary>
+</member>
+<member name="M:Hopac.MVar.fill``1(Hopac.MVar{``0},``0)">
+<summary>
+ Creates a job that writes the given value to the serialized variable.  It
+ is an error to write to a `MVar` that is full.  This assumption may be
+ used to optimize the implementation and incorrect usage leads to undefined
+ behavior.
+</summary>
+</member>
+<member name="M:Hopac.MVar.createFull``1(``0)">
+<summary>
+ Creates a job that creates a new serialized variable that initially
+ contains the given value.
+</summary>
+</member>
+<member name="M:Hopac.MVar.create``1">
+<summary>
+ Creates a job that creates a new serialized variable that is initially
+ empty.
+</summary>
+</member>
+<member name="M:Hopac.MVar.Now.createFull``1(``0)">
+<summary>
+ Creates a new serialized variable that initially contains the given
+ value.
+</summary>
+</member>
+<member name="M:Hopac.MVar.Now.create``1">
+<summary>
+ Creates a new serialized variable that is initially empty.
+</summary>
+</member>
+<member name="T:Hopac.MVar.Now">
+<summary>
+ Immediate or non-workflow operations on serialized variables.
+</summary>
+</member>
+<member name="T:Hopac.MVar">
+<summary>
+ Operations on serialized variables.
+</summary>
+</member>
+<member name="M:Hopac.Latch.await(Hopac.Latch)">
+<summary>
+ Returns an alternative that becomes available once the latch opens.
+</summary>
+</member>
+<member name="M:Hopac.Latch.decrement(Hopac.Latch)">
+<summary>
+ Returns a job that explicitly decrements the counter of the latch.  When
+ the counter reaches `0`, the latch becomes open and operations awaiting
+ the latch are resumed.
+</summary>
+</member>
+<member name="M:Hopac.Latch.queueAsPromise``1(Hopac.Latch,Hopac.Job{``0})">
+<summary>
+ Creates a job that queues the given job to run as a separate concurrent
+ job and holds the latch until the queued job either returns or fails with
+ an exception.  A promise is returned for observing the result or failure
+ of the queued job.
+</summary>
+</member>
+<member name="M:Hopac.Latch.queue(Hopac.Latch,Hopac.Job{Microsoft.FSharp.Core.Unit})">
+<summary>
+ Creates a job that queues the given job to run as a separate concurrent
+ job and holds the latch until the queued job either returns or fails with
+ an exception.  See also `Latch.queueAsAlt`.
+</summary>
+</member>
+<member name="M:Hopac.Latch.holding``1(Hopac.Latch,Hopac.Job{``0})">
+<summary>
+ Creates a job that runs the given job holding the specified latch.  Note
+ that the latch is only held while the given job is being run.  See also
+ `Latch.queue`.
+</summary>
+</member>
+<member name="M:Hopac.Latch.within``2(Microsoft.FSharp.Core.FSharpFunc{Hopac.Latch,``0})">
+<summary>
+ Creates a job that creates a new latch, passes it to the given function to
+ create a new job to run and then awaits for the latch to open.
+</summary>
+</member>
+<member name="M:Hopac.Latch.Now.increment(Hopac.Latch)">
+<summary>
+ Increments the counter of the latch.
+</summary>
+</member>
+<member name="M:Hopac.Latch.Now.create(System.Int32)">
+<summary>
+ Creates a new latch with the specified initial count.
+</summary>
+</member>
+<member name="T:Hopac.Latch.Now">
+<summary>
+ Immediate operations on latches.
+</summary>
+</member>
+<member name="T:Hopac.Latch">
+<summary>
+ Operations on latches.
+</summary>
+</member>
 <member name="M:Hopac.IVar.read``1(Hopac.IVar{``0})">
 <summary>
  Creates an alternative that becomes available after the write once
@@ -742,62 +947,315 @@
  Operations on write once variables.
 </summary>
 </member>
-<member name="M:Hopac.Infixes.op_LessLessMinusPlus``1(Hopac.Mailbox{``0},``0)">
-<summary>
- Creates a job that sends the given value to the specified mailbox.  This
- operation never blocks.  `xMb &lt;&lt;-+ x` is equivalent to `Mailbox.send xMb
- x`.
-</summary>
-</member>
-<member name="M:Hopac.Infixes.op_LessLessMinusEquals``1(Hopac.MVar{``0},``0)">
-<summary>
- Creates a job that writes the given value to the serialized variable.  It
- is an error to write to a `MVar` that is full.  This assumption may be
- used to optimize the implementation and incorrect usage leads to undefined
- behavior.  `xM &lt;&lt;-= x` is equivalent to `MVar.fill xM x`.
-</summary>
-</member>
-<member name="M:Hopac.Infixes.op_LessMinusEqualsBang``1(Hopac.IVar{``0},System.Exception)">
-<summary>
- Creates a job that writes the given exception to the given write once
- variable.  It is an error to write to a single `IVar` more than once.
- This assumption may be used to optimize the implementation and incorrect
- usage leads to undefined behavior.  `xI &lt;-=! e` is equivalent to
- `IVar.fillFailure xI e`.
-</summary>
-</member>
-<member name="M:Hopac.Infixes.op_LessMinusEquals``1(Hopac.IVar{``0},``0)">
-<summary>
- Creates a job that writes to the given write once variable.  It is an
- error to write to a single `IVar` more than once.  This assumption may be
- used to optimize the implementation and incorrect usage leads to undefined
- behavior.  `xI &lt;-= x` is equivalent to `IVar.fill xI x`.
-</summary>
-</member>
-<member name="M:Hopac.Infixes.op_LessMinusPlus``1(Hopac.Ch{``0},``0)">
+<member name="M:Hopac.Ch.send``1(Hopac.Ch{``0},``0)">
 <summary>
  Creates a job that sends a value to another job on the given channel.  A
  send operation is asynchronous.  In other words, a send operation does not
- wait for another job to give the value to.  `xCh &lt;-+ x` is equivalent to
- `Ch.send xCh x`.
-
- Note that channels have been optimized for synchronous operations; an
- occasional send can be efficient, but when sends are queued, performance
- maybe be significantly worse than with a `Mailbox` optimized for
- buffering.
+ wait for another job to give the value to.
 </summary>
 </member>
-<member name="M:Hopac.Infixes.op_LessMinusMinus``1(Hopac.Ch{``0},``0)">
+<member name="M:Hopac.Ch.take``1(Hopac.Ch{``0})">
+<summary>
+ Creates an alternative that, at instantiation time, offers to take a value
+ from another job on the given channel, and becomes available when another
+ job offers to give a value.
+</summary>
+</member>
+<member name="M:Hopac.Ch.give``1(Hopac.Ch{``0},``0)">
 <summary>
  Creates an alternative that, at instantiation time, offers to give the
  given value on the given channel, and becomes available when another job
- offers to take the value.  `xCh &lt;-- x` is equivalent to `Ch.give xCh x`.
+ offers to take the value.
 </summary>
 </member>
-<member name="T:Hopac.Infixes">
+<member name="M:Hopac.Ch.create``1">
 <summary>
- Additional infix operators.  You can open this module to bring all of the
- infix operators into scope.
+ Creates a job that creates a new channel.
+</summary>
+</member>
+<member name="M:Hopac.Ch.Try.take``1(Hopac.Ch{``0})">
+<summary>
+ Creates a job that attempts to take a value from another job waiting on
+ the given channel.  Note that the other side of the communication must
+ be blocked on the channel for communication to happen.
+</summary>
+</member>
+<member name="M:Hopac.Ch.Try.give``1(Hopac.Ch{``0},``0)">
+<summary>
+ Creates a job that attempts to give a value to another job waiting on
+ the given channel.  The result indicates whether a value was given or
+ not.  Note that the other side of the communication must be blocked on
+ the channel for communication to happen.
+</summary>
+</member>
+<member name="T:Hopac.Ch.Try">
+<summary>
+ Polling, or non-blocking, operations on synchronous channels.
+</summary>
+</member>
+<member name="M:Hopac.Ch.Global.send``1(Hopac.Ch{``0},``0)">
+<summary>
+ Sends the given value to the specified channel.
+
+ Note that using this function in a job workflow is not optimal and you
+ should use `Ch.send` instead.
+</summary>
+</member>
+<member name="T:Hopac.Ch.Global">
+<summary>
+ Operations bound to the global scheduler.
+</summary>
+</member>
+<member name="M:Hopac.Ch.Now.create``1">
+<summary>
+ Creates a new channel.
+</summary>
+</member>
+<member name="T:Hopac.Ch.Now">
+<summary>
+ Immediate or non-workflow operations on synchronous channels.
+</summary>
+</member>
+<member name="T:Hopac.Ch">
+<summary>
+ Operations on synchronous channels.
+</summary>
+</member>
+<member name="M:Hopac.Timer.Global.timeOutMillis(System.Int32)">
+<summary>
+ `timeOutMillis n` is equivalent to `timeOut (TimeSpan.FromMilliseconds
+ (double n))`.
+</summary>
+</member>
+<member name="M:Hopac.Timer.Global.timeOut(System.TimeSpan)">
+<summary>
+ Creates an alternative that, after instantiation, becomes available
+ after the specified time span.
+
+ Note that this is simply not intended for high precision timing and the
+ resolution of the underlying timing mechanism is very coarse (Windows
+ system ticks).
+
+ Note that you do not need to create a new timeout alternative every time
+ you need a timeout with a specific time span.
+</summary>
+</member>
+<member name="T:Hopac.Timer.Global">
+<summary>
+ Operations on the global wall-clock timer.  The global timer is implicitly
+ associated with the global scheduler.
+</summary>
+</member>
+<member name="T:Hopac.Timer">
+<summary>
+ Operations on a wall-clock timer.
+</summary>
+</member>
+<member name="M:Hopac.Alt.paranoid``1(Hopac.Alt{``0})">
+<summary>
+ Given an alternative, creates a new alternative that behaves exactly like
+ the given alternative, except that the new alternative obviously cannot be
+ directly downcast to the underlying type of the given alternative.  This
+ operation is provided for debugging purposes.  You can always break
+ abstractions using reflection.  See also: `Job.paranoid`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.tryFinallyJob``1(Hopac.Alt{``0},Hopac.Job{Microsoft.FSharp.Core.Unit})">
+<summary>
+ Implements a variation of the `try-finally` exception handling construct
+ for alternatives.  The given action, specified as a job, is executed after
+ the alternative has been committed to, whether the alternative fails or
+ completes successfully.  Note that the action is not executed in case the
+ alternative is not committed to.  Use `withNack` to attach the action to
+ the non-committed case.
+</summary>
+</member>
+<member name="M:Hopac.Alt.tryFinallyFun``1(Hopac.Alt{``0},Microsoft.FSharp.Core.FSharpFunc{Microsoft.FSharp.Core.Unit,Microsoft.FSharp.Core.Unit})">
+<summary>
+ Implements a variation of the `try-finally` exception handling construct
+ for alternatives.  The given action, specified as a function, is executed
+ after the alternative has been committed to, whether the alternative fails
+ or completes successfully.  Note that the action is not executed in case
+ the alternative is not committed to.  Use `withNack` to attach the action
+ to the non-committed case.
+</summary>
+</member>
+<member name="M:Hopac.Alt.tryIn``4(Hopac.Alt{``0},Microsoft.FSharp.Core.FSharpFunc{``0,``1},Microsoft.FSharp.Core.FSharpFunc{System.Exception,``3})">
+<summary>
+ Implements the `try-in-unless` exception handling construct for
+ alternatives.  Both of the continuation jobs `&apos;x -&gt; Job&lt;&apos;y&gt;`, for success,
+ and `exn -&gt; Job&lt;&apos;y&gt;`, for failure, are invoked from a tail position.
+
+ Exceptions from both before and after the commit point can be handled.  An
+ exception that occurs before a commit point, from the user code in a
+ `guard`, `delay`, or `withNack`, results in treating that exception as the
+ commit point.
+
+ Note you can also use function or job level exception handling before the
+ commit point within the user code in a `guard`, `delay`, or `withNack`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.Ignore``1(Hopac.Alt{``0})">
+<summary>
+ `Ignore xA` is equivalent to `xA |&gt;&gt;? fun _ -&gt; ()`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.map``2(Microsoft.FSharp.Core.FSharpFunc{``0,``1},Hopac.Alt{``0})">
+<summary>
+ `xA |&gt; map x2y` is equivalent to `xA |&gt; wrap (x2y &gt;&gt; result)`.  This is
+ the same as `|&gt;&gt;?` with the arguments flipped.
+</summary>
+</member>
+<member name="M:Hopac.Alt.wrap``3(Microsoft.FSharp.Core.FSharpFunc{``0,``1},Hopac.Alt{``0})">
+<summary>
+ Creates an alternative whose result is passed to the given job constructor
+ and processed with the resulting job after the given alternative has been
+ committed to.  This is the same as `&gt;&gt;=?` with the arguments flipped.
+</summary>
+</member>
+<member name="M:Hopac.Alt.chooser``2(System.Collections.Generic.IEnumerable{``0})">
+<summary>
+ `chooser xAs` is like `choose xAs` except that the order in which the
+ alternatives from the sequence are considered will be determined at random
+ each time the alternative is used.  See also: `&lt;~&gt;?`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.choose``2(System.Collections.Generic.IEnumerable{``0})">
+<summary>
+ Creates an alternative that is available when any one of the given
+ alternatives is.  See also: `&lt;|&gt;?`.
+
+ Note that `choose []` is equivalent to `never ()`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.withNack``3(Microsoft.FSharp.Core.FSharpFunc{Hopac.Promise{Microsoft.FSharp.Core.Unit},``0})">
+<summary>
+ Creates an alternative that is computed at instantiation time with the
+ given job constructed with a negative acknowledgment alternative.  See
+ also: `guard`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.random``2(Microsoft.FSharp.Core.FSharpFunc{System.UInt64,``0})">
+<summary>
+ Creates an alternative that is computed at instantiation time with the
+ the given function, which will be called with a pseudo random 64-bit
+ unsigned integer.  See also: `Random.bind`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.delay``2(Microsoft.FSharp.Core.FSharpFunc{Microsoft.FSharp.Core.Unit,``0})">
+<summary>
+ Creates an alternative that is computed at instantiation time with the
+ given thunk.
+
+ `delay` is an optimized weaker form of `guard` that can be used when no
+ concurrent operations beyond the returned alternative are required by the
+ encapsulated request protocol.
+</summary>
+</member>
+<member name="M:Hopac.Alt.guard``2(Hopac.Job{``0})">
+<summary>
+ Creates an alternative that is computed at instantiation time with the
+ given job.  See also: `withNack`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.raises``1(System.Exception)">
+<summary>
+ Creates an alternative that has the effect of raising the specified
+ exception.  `raises e` is equivalent to `delay &lt;| fun () -&gt; raise e`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.once``1(``0)">
+<summary>
+ Returns an alternative that can be committed to once and that produces the
+ given value.
+</summary>
+</member>
+<member name="M:Hopac.Alt.zero">
+<summary>
+ Returns an alternative that is never available.  `zero ()` is an optimized
+ version of `never ()`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.never``1">
+<summary>
+ Creates an alternative that is never available.
+
+ Note that synchronizing on `never ()`, without other alternatives, is
+ equivalent to performing `abort ()`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.unit">
+<summary>
+ Returns an alternative that is always available and results in the unit
+ value.  `unit ()` is an optimized version of `always ()`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.always``1(``0)">
+<summary>
+ Creates an alternative that is always available and results in the given
+ value.
+
+ Note that when there are alternatives immediately available in a choice,
+ the first such alternative will be committed to.
+</summary>
+</member>
+<member name="M:Hopac.Alt.Infixes.op_GreaterGreaterBangQmark``2(Hopac.Alt{``0},System.Exception)">
+<summary>
+ `xA &gt;&gt;!? e` is equivalent to `xA &gt;&gt;=? fun _ -&gt; raise e`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.Infixes.op_GreaterGreaterPercentQmark``2(Hopac.Alt{``0},``1)">
+<summary>
+ `xA &gt;&gt;%? y` is equivalent to `xA &gt;&gt;=? fun _ -&gt; result y`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.Infixes.op_BarGreaterGreaterQmark``2(Hopac.Alt{``0},Microsoft.FSharp.Core.FSharpFunc{``0,``1})">
+<summary>
+ `xA |&gt;&gt;? x2y` is equivalent to `xA &gt;&gt;=? (x2y &gt;&gt; result)`.  This is the
+ same as `map` with the arguments flipped.
+</summary>
+</member>
+<member name="M:Hopac.Alt.Infixes.op_DotGreaterGreaterQmark``2(Hopac.Alt{``0},Hopac.Job{``1})">
+<summary>
+ `xA .&gt;&gt;? yJ` is equivalent to `xA &gt;&gt;=? fun x -&gt; yJ &gt;&gt;% x`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.Infixes.op_GreaterGreaterDotQmark``2(Hopac.Alt{``0},Hopac.Job{``1})">
+<summary>
+ `xA &gt;&gt;.? yJ` is equivalent to `xA &gt;&gt;=? fun _ -&gt; yJ`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.Infixes.op_GreaterGreaterEqualsQmark``3(Hopac.Alt{``0},Microsoft.FSharp.Core.FSharpFunc{``0,``1})">
+<summary>
+ Creates an alternative whose result is passed to the given job
+ constructor and processed with the resulting job after the given
+ alternative has been committed to.  This is the same as `wrap` with the
+ arguments flipped.
+</summary>
+</member>
+<member name="M:Hopac.Alt.Infixes.op_LessTwiddleGreaterQmark``1(Hopac.Alt{``0},Hopac.Alt{``0})">
+<summary>
+ `xA1 &lt;~&gt;? xA2` is like `xA1 &lt;|&gt;? xA2` except that the order in which
+ `xA1` and `xA2` are considered is determined at random every time the
+ alternative is used.  See also: `chooser`.
+</summary>
+</member>
+<member name="M:Hopac.Alt.Infixes.op_LessBarGreaterQmark``1(Hopac.Alt{``0},Hopac.Alt{``0})">
+<summary>
+ Creates an alternative that is available when either of the given
+ alternatives is available.  `xA1 &lt;|&gt;? xA2` is an optimized version of
+ `choose [xA1; xA2]`.
+</summary>
+</member>
+<member name="T:Hopac.Alt.Infixes">
+<summary>
+ Infix operators on alternatives.  You can open this module to bring all
+ of the infix operators into scope.
+</summary>
+</member>
+<member name="T:Hopac.Alt">
+<summary>
+ Operations on first-class synchronous operations or alternatives.
 </summary>
 </member>
 <member name="M:Hopac.Job.paranoid``1(Hopac.Job{``0})">
@@ -1266,218 +1724,6 @@
  Operations on jobs.
 </summary>
 </member>
-<member name="M:Hopac.Latch.await(Hopac.Latch)">
-<summary>
- Returns an alternative that becomes available once the latch opens.
-</summary>
-</member>
-<member name="M:Hopac.Latch.decrement(Hopac.Latch)">
-<summary>
- Returns a job that explicitly decrements the counter of the latch.  When
- the counter reaches `0`, the latch becomes open and operations awaiting
- the latch are resumed.
-</summary>
-</member>
-<member name="M:Hopac.Latch.queueAsPromise``1(Hopac.Latch,Hopac.Job{``0})">
-<summary>
- Creates a job that queues the given job to run as a separate concurrent
- job and holds the latch until the queued job either returns or fails with
- an exception.  A promise is returned for observing the result or failure
- of the queued job.
-</summary>
-</member>
-<member name="M:Hopac.Latch.queue(Hopac.Latch,Hopac.Job{Microsoft.FSharp.Core.Unit})">
-<summary>
- Creates a job that queues the given job to run as a separate concurrent
- job and holds the latch until the queued job either returns or fails with
- an exception.  See also `Latch.queueAsAlt`.
-</summary>
-</member>
-<member name="M:Hopac.Latch.holding``1(Hopac.Latch,Hopac.Job{``0})">
-<summary>
- Creates a job that runs the given job holding the specified latch.  Note
- that the latch is only held while the given job is being run.  See also
- `Latch.queue`.
-</summary>
-</member>
-<member name="M:Hopac.Latch.within``2(Microsoft.FSharp.Core.FSharpFunc{Hopac.Latch,``0})">
-<summary>
- Creates a job that creates a new latch, passes it to the given function to
- create a new job to run and then awaits for the latch to open.
-</summary>
-</member>
-<member name="M:Hopac.Latch.Now.increment(Hopac.Latch)">
-<summary>
- Increments the counter of the latch.
-</summary>
-</member>
-<member name="M:Hopac.Latch.Now.create(System.Int32)">
-<summary>
- Creates a new latch with the specified initial count.
-</summary>
-</member>
-<member name="T:Hopac.Latch.Now">
-<summary>
- Immediate operations on latches.
-</summary>
-</member>
-<member name="T:Hopac.Latch">
-<summary>
- Operations on latches.
-</summary>
-</member>
-<member name="M:Hopac.Lock.duringJob``1(Hopac.Lock,Hopac.Job{``0})">
-<summary>
- Creates a job that runs the given job so that the lock is held during the
- execution of the given job.
-</summary>
-</member>
-<member name="M:Hopac.Lock.duringFun``1(Hopac.Lock,Microsoft.FSharp.Core.FSharpFunc{Microsoft.FSharp.Core.Unit,``0})">
-<summary>
- Creates a job that calls the given function so that the lock is held
- during the execution of the function.
-</summary>
-</member>
-<member name="M:Hopac.Lock.create">
-<summary>
- Creates a job that creates a new mutual exclusion lock.
-</summary>
-</member>
-<member name="M:Hopac.Lock.Now.create">
-<summary>
- Creates a new lock.
-</summary>
-</member>
-<member name="T:Hopac.Lock.Now">
-<summary>
- Immediate or non-workflow operations on locks.
-</summary>
-</member>
-<member name="T:Hopac.Lock">
-<summary>
- Operations on mutual exclusion locks.
-</summary>
-</member>
-<member name="M:Hopac.MVar.take``1(Hopac.MVar{``0})">
-<summary>
- Creates an alternative that becomes available when the variable contains a
- value and, if committed to, takes the value from the variable.
-</summary>
-</member>
-<member name="M:Hopac.MVar.read``1(Hopac.MVar{``0})">
-<summary>
- Creates an alternative that becomes available when the variable contains a
- value and, if committed to, read the value from the variable.
-</summary>
-</member>
-<member name="M:Hopac.MVar.modifyJob``3(Microsoft.FSharp.Core.FSharpFunc{``0,``1},Hopac.MVar{``0})">
-<summary>
- Creates a job that takes the value of the serialized variable and then
- fills the variable with the result of performing the given job.
-
- Note that this operation is not atomic as such.  However, it is a common
- programming pattern to make it so that only the job that has emptied an
- `MVar` by taking a value from it is allowed to fill the `MVar`.  Such an
- access pattern makes operations on the `MVar` appear as atomic.
-</summary>
-</member>
-<member name="M:Hopac.MVar.modifyFun``2(Microsoft.FSharp.Core.FSharpFunc{``0,System.Tuple{``0,``1}},Hopac.MVar{``0})">
-<summary>
- Creates a job that takes the value of the serialized variable and then
- fills the variable with the result of performing the given function.
-
- Note that this operation is not atomic as such.  However, it is a common
- programming pattern to make it so that only the job that has emptied an
- `MVar` by taking a value from it is allowed to fill the `MVar`.  Such an
- access pattern makes operations on the `MVar` appear as atomic.
-</summary>
-</member>
-<member name="M:Hopac.MVar.fill``1(Hopac.MVar{``0},``0)">
-<summary>
- Creates a job that writes the given value to the serialized variable.  It
- is an error to write to a `MVar` that is full.  This assumption may be
- used to optimize the implementation and incorrect usage leads to undefined
- behavior.
-</summary>
-</member>
-<member name="M:Hopac.MVar.createFull``1(``0)">
-<summary>
- Creates a job that creates a new serialized variable that initially
- contains the given value.
-</summary>
-</member>
-<member name="M:Hopac.MVar.create``1">
-<summary>
- Creates a job that creates a new serialized variable that is initially
- empty.
-</summary>
-</member>
-<member name="M:Hopac.MVar.Now.createFull``1(``0)">
-<summary>
- Creates a new serialized variable that initially contains the given
- value.
-</summary>
-</member>
-<member name="M:Hopac.MVar.Now.create``1">
-<summary>
- Creates a new serialized variable that is initially empty.
-</summary>
-</member>
-<member name="T:Hopac.MVar.Now">
-<summary>
- Immediate or non-workflow operations on serialized variables.
-</summary>
-</member>
-<member name="T:Hopac.MVar">
-<summary>
- Operations on serialized variables.
-</summary>
-</member>
-<member name="M:Hopac.Mailbox.take``1(Hopac.Mailbox{``0})">
-<summary>
- Creates an alternative that becomes available when the mailbox contains at
- least one value and, if committed to, takes a value from the mailbox.
-</summary>
-</member>
-<member name="M:Hopac.Mailbox.send``1(Hopac.Mailbox{``0},``0)">
-<summary>
- Creates a job that sends the given value to the specified mailbox.  This
- operation never blocks.
-</summary>
-</member>
-<member name="M:Hopac.Mailbox.create``1">
-<summary>
- Creates a job that creates a new mailbox.
-</summary>
-</member>
-<member name="M:Hopac.Mailbox.Global.send``1(Hopac.Mailbox{``0},``0)">
-<summary>
- Sends the given value to the specified mailbox.
-
- Note that using this function in a job workflow is not optimal and you
- should use `Mailbox.send` instead.
-</summary>
-</member>
-<member name="T:Hopac.Mailbox.Global">
-<summary>
- Operations bound to the global scheduler.
-</summary>
-</member>
-<member name="M:Hopac.Mailbox.Now.create``1">
-<summary>
- Creates a new mailbox.
-</summary>
-</member>
-<member name="T:Hopac.Mailbox.Now">
-<summary>
- Immediate or non-workflow operations on buffered mailboxes.
-</summary>
-</member>
-<member name="T:Hopac.Mailbox">
-<summary>
- Operations on buffered mailboxes.
-</summary>
-</member>
 <member name="M:Hopac.Proc.join(Hopac.Proc)">
 <summary>
  Returns an alternative that becomes available once the process is known to
@@ -1512,247 +1758,6 @@
 <member name="T:Hopac.Proc">
 <summary>
  Operations on processes.
-</summary>
-</member>
-<member name="M:Hopac.Promise.read``1(Hopac.Promise{``0})">
-<summary>
- Creates an alternative for reading the promise.  If the promise was
- delayed, it is started as a separate job.
-</summary>
-</member>
-<member name="M:Hopac.Promise.queue``1(Hopac.Job{``0})">
-<summary>
- Creates a job that creates a promise, whose value is computed with the
- given job, which is scheduled to be run as a separate concurrent job.  See
- also: `start`, `Job.queue`.
-</summary>
-</member>
-<member name="M:Hopac.Promise.start``1(Hopac.Job{``0})">
-<summary>
- Creates a job that creates a promise, whose value is computed with the
- given job, which is immediately started to run as a separate concurrent
- job.  See also: `queue`, `Job.queue`.
-</summary>
-</member>
-<member name="M:Hopac.Promise.Now.get``1(Hopac.Promise{``0})">
-<summary>
- Returns the value or raises the failure exception that the promise has
- been fulfilled with.  It is considered an error if the promise has not
- yet been fulfilled.
-
- This operation is mainly provided for advanced uses of promises such as
- when creating more complex data structures that make internal use of
- promises.  Using this to poll promises is not generally a good idea.
-</summary>
-</member>
-<member name="M:Hopac.Promise.Now.isFulfilled``1(Hopac.Promise{``0})">
-<summary>
- Returns true iff the given promise has already been fulfilled (either
- with a value or with a failure).
-
- This operation is mainly provided for advanced uses of promises such as
- when creating more complex data structures that make internal use of
- promises.  Using this to poll promises is not generally a good idea.
-</summary>
-</member>
-<member name="M:Hopac.Promise.Now.withFailure``1(System.Exception)">
-<summary>
- Creates a promise with the given failure exception.
-</summary>
-</member>
-<member name="M:Hopac.Promise.Now.withValue``1(``0)">
-<summary>
- Creates a promise with the given value.
-</summary>
-</member>
-<member name="M:Hopac.Promise.Now.delay``1(Hopac.Job{``0})">
-<summary>
- Creates a promise whose value is computed lazily with the given job when
- an attempt is made to read the promise.  Although the job is not started
- immediately, the effect is that the delayed job will be run as a
- separate job, which means it is possible to communicate with it as long
- the delayed job is started before trying to communicate with it.
-</summary>
-</member>
-<member name="T:Hopac.Promise.Now">
-<summary>
- Immediate or non-workflow operations on promises.
-</summary>
-</member>
-<member name="T:Hopac.Promise">
-<summary>
- Operations on promises.
-</summary>
-</member>
-<member name="P:Hopac.Scheduler.Create.TopLevelHandler">
-<summary>
- Specifies the top level exception handler job constructor of the
- scheduler.  When a job fails with an otherwise unhandled exception,
- the job is killed and a new job is constructed with the top level
- handler constructor and then started.  To avoid infinite loops, in
- case the top level handler job raises exceptions, it is simply killed
- after printing a message to the console.  The default top level
- handler simply prints out a message to the console.
-</summary>
-</member>
-<member name="P:Hopac.Scheduler.Create.NumWorkers">
-<summary>
- Number of worker threads.  Using more than
- `Environment.ProcessorCount` is not optimal and may, in some cases,
- significantly reduce performance.  The default is
- `Environment.ProcessorCount`.
-</summary>
-</member>
-<member name="P:Hopac.Scheduler.Create.MaxStackSize">
-<summary>
- Specifies the maximum stack size for worker threads.  The default
- is to use the default maximum stack size of the `Thread` class.
-</summary>
-</member>
-<member name="P:Hopac.Scheduler.Create.IdleHandler">
-<summary>
- Specifies the idle handler for workers.  The worker idle handler is
- run whenever an individual worker runs out of work.  The idle handler
- must return an integer value that specifies how many milliseconds the
- worker is allowed to sleep.  `Timeout.Infinite` puts the worker into
- sleep until the scheduler explicitly wakes it up.  `0` means that the
- idle handler found some new work and the worker should immediately
- look for it.
-</summary>
-</member>
-<member name="P:Hopac.Scheduler.Create.Foreground">
-<summary>
- Specifies whether worker threads are run as background threads or as
- foreground threads.  The default is to run workers as background
- threads.  If you want to run worker threads as foreground threads,
- then you will have to explicitly kill the worker threads.  Using
- foreground threads is probably preferable if your application
- dynamically creates and kills local schedulers to make sure the
- worker threads are properly killed.
-</summary>
-</member>
-<member name="P:Hopac.Scheduler.Create.Def">
-<summary>
- Default options.
-</summary>
-</member>
-<member name="T:Hopac.Scheduler.Create">
-<summary>
- A record of scheduler configuration options.
-</summary>
-</member>
-<member name="M:Hopac.Scheduler.kill(Hopac.Scheduler)">
-<summary>
- Kills the worker threads of the scheduler one-by-one.  This should only be
- used with a local scheduler that is known to be idle.
-</summary>
-</member>
-<member name="M:Hopac.Scheduler.wait(Hopac.Scheduler)">
-<summary>
- Waits until the scheduler becomes completely idle.
-
- Note that for this to make sense, the scheduler should be a local
- scheduler that your program manages explicitly.
-</summary>
-</member>
-<member name="M:Hopac.Scheduler.server(Hopac.Scheduler,Hopac.Job{Hopac.Void})">
-<summary>
- Like `Scheduler.start`, but the given job is known never to return
- normally, so the job can be spawned in an even more lightweight manner.
-</summary>
-</member>
-<member name="M:Hopac.Scheduler.queueIgnore``1(Hopac.Scheduler,Hopac.Job{``0})">
-<summary>
- `queueIgnore xJ` is equivalent to `Job.Ignore xJ |&gt; queue`.
-</summary>
-</member>
-<member name="M:Hopac.Scheduler.queue(Hopac.Scheduler,Hopac.Job{Microsoft.FSharp.Core.Unit})">
-<summary>
- Queues the given job for execution on the scheduler.
-
- Note that using this function in a job workflow is not optimal and you
- should use `Job.queue` instead.
-</summary>
-</member>
-<member name="M:Hopac.Scheduler.startIgnore``1(Hopac.Scheduler,Hopac.Job{``0})">
-<summary>
- `startIgnore xJ` is equivalent to `Job.Ignore xJ |&gt; start`.
-</summary>
-</member>
-<member name="M:Hopac.Scheduler.start(Hopac.Scheduler,Hopac.Job{Microsoft.FSharp.Core.Unit})">
-<summary>
- Starts running the given job, but does not wait for the job to finish.
-
- Note that using this function in a job workflow is not optimal and you
- should use `Job.start` instead.
-</summary>
-</member>
-<member name="M:Hopac.Scheduler.startWithActions``1(Hopac.Scheduler,Microsoft.FSharp.Core.FSharpFunc{System.Exception,Microsoft.FSharp.Core.Unit},Microsoft.FSharp.Core.FSharpFunc{``0,Microsoft.FSharp.Core.Unit},Hopac.Job{``0})">
-<summary>
- Starts running the given job, but does not wait for the job to finish.
- Upon the failure or success of the job, one of the given actions is called
- once.  See also: `abort`.
-
- Note that using this function in a job workflow is not optimal and you
- should instead use `Job.start` with desired Job exception handling
- construct (e.g. `Job.tryIn` or `Job.catch`).
-</summary>
-</member>
-<member name="M:Hopac.Scheduler.create(Hopac.Scheduler.Create)">
-<summary>
- Creates a new local scheduler.
-
- Note that a local scheduler does not automatically implement services such
- as the global wall-clock timer.
-</summary>
-</member>
-<member name="M:Hopac.Scheduler.Global.setCreate(Hopac.Scheduler.Create)">
-<summary>
- Sets options for creating the global scheduler.  This must be called
- before invoking any Hopac functionality that implicitly creates the
- global scheduler.
-</summary>
-</member>
-<member name="T:Hopac.Scheduler.Global">
-<summary>
- Operations on the global scheduler.
-</summary>
-</member>
-<member name="T:Hopac.Scheduler">
-<summary>
- Operations on schedulers.  Use of this module requires more intimate
- knowledge of Hopac, but may allow adapting Hopac to special application
- requirements.
-</summary>
-</member>
-<member name="M:Hopac.Timer.Global.timeOutMillis(System.Int32)">
-<summary>
- `timeOutMillis n` is equivalent to `timeOut (TimeSpan.FromMilliseconds
- (double n))`.
-</summary>
-</member>
-<member name="M:Hopac.Timer.Global.timeOut(System.TimeSpan)">
-<summary>
- Creates an alternative that, after instantiation, becomes available
- after the specified time span.
-
- Note that this is simply not intended for high precision timing and the
- resolution of the underlying timing mechanism is very coarse (Windows
- system ticks).
-
- Note that you do not need to create a new timeout alternative every time
- you need a timeout with a specific time span.
-</summary>
-</member>
-<member name="T:Hopac.Timer.Global">
-<summary>
- Operations on the global wall-clock timer.  The global timer is implicitly
- associated with the global scheduler.
-</summary>
-</member>
-<member name="T:Hopac.Timer">
-<summary>
- Operations on a wall-clock timer.
 </summary>
 </member>
 <member name="M:Hopac.TopLevel.mvarFull``1(``0)">
@@ -1859,6 +1864,12 @@
 <summary>
  Convenience bindings for programming with Hopac.
 </summary>
+</member>
+<member name="">
+
+</member>
+<member name="T:System.AssemblyVersionInformation">
+
 </member>
 </members>
 </doc>
