@@ -10,6 +10,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".scripts", ".scripts", "{9652C6D0-C89D-4F13-BF26-82E06E24B3D4}"
 	ProjectSection(SolutionItems) = preProject
 		build.fsx = build.fsx
+		Hopac.Extras.nuspec = Hopac.Extras.nuspec
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{18ECC41E-F22F-4D4F-9864-8FFA454F2950}"

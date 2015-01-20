@@ -8,5 +8,6 @@ nuget FsCheck
 nuget Octokit
 nuget SourceLink.Fake
 nuget NuGet.CommandLine
+nuget Hopac
 
 github fsharp/FAKE modules/Octokit/Octokit.fsx

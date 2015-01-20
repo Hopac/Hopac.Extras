@@ -5,11 +5,11 @@ open Hopac.Infixes
 open Hopac.Job.Infixes
 open Hopac.Alt.Infixes
 open NUnit.Framework
-open Hopac.Extras
 open Swensen.Unquote
 open System
 open System.Threading
 open FsCheck 
+open Hopac.Extras
 
 let private takeOrThrow ch = 
     ch <|>? (Timer.Global.timeOutMillis 10000 |>>? fun _ -> failwith "timeout") |> run 

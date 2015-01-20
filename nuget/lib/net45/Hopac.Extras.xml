@@ -26,7 +26,7 @@
 <member name="">
 
 </member>
-<member name="M:Hopac.Extras.ObjectPool`1.WithInstanceJob``1(Microsoft.FSharp.Core.FSharpFunc{`0,Hopac.Job{``0}})">
+<member name="M:Hopac.Extras.ObjectPool`1.WithInstanceJob``2(Microsoft.FSharp.Core.FSharpFunc{`0,``0})">
 <summary>
  Gets an available instance from pool or create a new one, then passes it to function f,
  then returns the instance back to the pool (even if f or the job returned by f raise exceptions).
@@ -34,12 +34,6 @@
 </member>
 <member name="">
 
-</member>
-<member name="M:Hopac.Extras.ObjectPool`1.WithInstanceAlt``1(Microsoft.FSharp.Core.FSharpFunc{`0,Hopac.Alt{``0}})">
-<summary>
- Gets an available instance from pool or create a new one, then passes it to function f,
- then returns the instance back to the pool (even if f or the alt returned by f raise exceptions).
-</summary>
 </member>
 <member name="">
 
@@ -72,6 +66,48 @@
 
 </member>
 <member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="T:Hopac.Extras.ProcessRunner">
 
 </member>
 </members>

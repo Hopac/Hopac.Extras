@@ -12,6 +12,8 @@ open System
 #else
 #load "packages/SourceLink.Fake/tools/Fake.fsx"
 open SourceLink
+open System.IO
+
 #endif
 
 // --------------------------------------------------------------------------------------
@@ -70,7 +72,7 @@ let nugetDir = "./nuget/"
 // Read additional information from the release notes document
 let release = LoadReleaseNotes "RELEASE_NOTES.md"
 
-let genFSAssemblyInfo (projectPath) =
+let genAssemblyInfo (projectPath) =
     let projectName = System.IO.Path.GetFileNameWithoutExtension(projectPath)
     let basePath = "src/" + projectName
     let fileName = basePath + "/AssemblyInfo.fs"
@@ -81,23 +83,9 @@ let genFSAssemblyInfo (projectPath) =
         Attribute.Version release.AssemblyVersion
         Attribute.FileVersion release.AssemblyVersion ]
 
-let genCSAssemblyInfo (projectPath) =
-    let projectName = System.IO.Path.GetFileNameWithoutExtension(projectPath)
-    let basePath = "src/" + projectName + "/Properties"
-    let fileName = basePath + "/AssemblyInfo.cs"
-    CreateCSharpAssemblyInfo fileName
-      [ Attribute.Title (projectName)
-        Attribute.Product project
-        Attribute.Description summary
-        Attribute.Version release.AssemblyVersion
-        Attribute.FileVersion release.AssemblyVersion ]
-
 // Generate assembly info files with the right version & up-to-date information
 Target "AssemblyInfo" (fun _ ->
-  let fsProjs =  !! "src/**/*.fsproj"
-  let csProjs = !! "src/**/*.csproj"
-  fsProjs |> Seq.iter genFSAssemblyInfo
-  csProjs |> Seq.iter genCSAssemblyInfo
+  !! "src/**/*.fsproj" |> Seq.iter genAssemblyInfo
 )
 
 // --------------------------------------------------------------------------------------
@@ -162,14 +150,15 @@ Target "SourceLink" (fun _ ->
 // Build a NuGet package
 
 Target "NuGet" (fun _ ->
-    let nugetDocsDir = nugetDir @@ "docs"
-    let nugetlibDir = nugetDir @@ "lib/net40"
+    //let nugetDocsDir = nugetDir @@ "docs"
+    let nugetlibDir = nugetDir @@ "lib/net45"
 
-    CleanDir nugetDocsDir
+    //CleanDir nugetDocsDir
     CleanDir nugetlibDir
-
-    CopyDir nugetlibDir "bin" (fun file -> file.Contains "FSharp.Core." |> not)
-    CopyDir nugetDocsDir "./docs/output" allFiles
+    let excludeBins = set ["hopac"; "hopac.core"; "hopac.extra"; "hopac.platform"]
+    CopyDir nugetlibDir "bin" (fun file -> 
+        not <| excludeBins.Contains (Path.GetFileNameWithoutExtension(file).ToLower()))
+    //CopyDir nugetDocsDir "./docs/output" allFiles
 
     NuGet (fun p ->
         { p with
@@ -183,42 +172,42 @@ Target "NuGet" (fun _ ->
             OutputPath = nugetDir
             AccessKey = getBuildParamOrDefault "nugetkey" ""
             Publish = hasBuildParam "nugetkey"
-            Dependencies = [] })
+            Dependencies = ["Hopac", GetPackageVersion "./packages/" "Hopac"] })
         (project + ".nuspec")
 )
 
 // --------------------------------------------------------------------------------------
 // Generate the documentation
 
-Target "GenerateReferenceDocs" (fun _ ->
-    if not <| executeFSIWithArgs "docs/tools" "generate.fsx" ["--define:RELEASE"; "--define:REFERENCE"] [] then
-      failwith "generating reference documentation failed"
-)
-
-Target "GenerateHelp" (fun _ ->
-    if not <| executeFSIWithArgs "docs/tools" "generate.fsx" ["--define:RELEASE"; "--define:HELP"] [] then
-      failwith "generating help documentation failed"
-)
-
-Target "GenerateDocs" DoNothing
+//Target "GenerateReferenceDocs" (fun _ ->
+//    if not <| executeFSIWithArgs "docs/tools" "generate.fsx" ["--define:RELEASE"; "--define:REFERENCE"] [] then
+//      failwith "generating reference documentation failed"
+//)
+//
+//Target "GenerateHelp" (fun _ ->
+//    if not <| executeFSIWithArgs "docs/tools" "generate.fsx" ["--define:RELEASE"; "--define:HELP"] [] then
+//      failwith "generating help documentation failed"
+//)
+//
+//Target "GenerateDocs" DoNothing
 
 // --------------------------------------------------------------------------------------
 // Release Scripts
 
-Target "ReleaseDocs" (fun _ ->
-    let tempDocsDir = "temp/gh-pages"
-    CleanDir tempDocsDir
-    Repository.cloneSingleBranch "" (gitHome + "/" + gitName + ".git") "gh-pages" tempDocsDir
+//Target "ReleaseDocs" (fun _ ->
+//    let tempDocsDir = "temp/gh-pages"
+//    CleanDir tempDocsDir
+//    Repository.cloneSingleBranch "" (gitHome + "/" + gitName + ".git") "gh-pages" tempDocsDir
+//
+//    fullclean tempDocsDir
+//    CopyRecursive "docs/output" tempDocsDir true |> tracefn "%A"
+//    StageAll tempDocsDir
+//    Git.Commit.Commit tempDocsDir (sprintf "Update generated documentation for version %s" release.NugetVersion)
+//    Branches.push tempDocsDir
+//)
 
-    fullclean tempDocsDir
-    CopyRecursive "docs/output" tempDocsDir true |> tracefn "%A"
-    StageAll tempDocsDir
-    Git.Commit.Commit tempDocsDir (sprintf "Update generated documentation for version %s" release.NugetVersion)
-    Branches.push tempDocsDir
-)
-
-#load "paket-files/fsharp/FAKE/modules/Octokit/Octokit.fsx"
-open Octokit
+//#load "paket-files/fsharp/FAKE/modules/Octokit/Octokit.fsx"
+//open Octokit
 
 Target "Release" (fun _ ->
     StageAll ""
@@ -229,10 +218,10 @@ Target "Release" (fun _ ->
     Branches.pushTag "" "origin" release.NugetVersion
 
     // release on github
-    createClient (getBuildParamOrDefault "github-user" "") (getBuildParamOrDefault "github-pw" "")
-    |> createDraft gitOwner gitName release.NugetVersion (release.SemVer.PreRelease <> None) release.Notes
-    |> releaseDraft
-    |> Async.RunSynchronously
+//    createClient (getBuildParamOrDefault "github-user" "") (getBuildParamOrDefault "github-pw" "")
+//    |> createDraft gitOwner gitName release.NugetVersion (release.SemVer.PreRelease <> None) release.Notes
+//    |> releaseDraft
+//    |> Async.RunSynchronously
 )
 
 Target "BuildPackage" DoNothing
