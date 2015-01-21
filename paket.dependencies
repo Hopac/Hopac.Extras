@@ -1,6 +1,6 @@
 source https://nuget.org/api/v2
 
-nuget FAKE
+nuget FAKE 3.14.0
 nuget NUnit
 nuget NUnit.Runners
 nuget Unquote

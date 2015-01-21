@@ -1,3 +1,7 @@
+#### 0.1.4 - 21.01.2015
+* Enrich ProcessRunner interface
+* Add comments
+
 #### 0.1.3 - 21.01.2015
 * Remove Hopac binaries
 * add Hopac NuGet package dependency
