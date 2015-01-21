@@ -4,9 +4,9 @@ open System.Reflection
 [<assembly: AssemblyTitleAttribute("Hopac.Extras")>]
 [<assembly: AssemblyProductAttribute("Hopac.Extras")>]
 [<assembly: AssemblyDescriptionAttribute("The Hopac.Extras project contains useful abstractions implemented with Hopac.")>]
-[<assembly: AssemblyVersionAttribute("0.1.5")>]
-[<assembly: AssemblyFileVersionAttribute("0.1.5")>]
+[<assembly: AssemblyVersionAttribute("0.1.6")>]
+[<assembly: AssemblyFileVersionAttribute("0.1.6")>]
 do ()
 
 module internal AssemblyVersionInformation =
-    let [<Literal>] Version = "0.1.5"
+    let [<Literal>] Version = "0.1.6"

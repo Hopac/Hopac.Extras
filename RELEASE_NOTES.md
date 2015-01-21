@@ -1,3 +1,6 @@
+#### 0.1.6 - 21.01.2015
+* ProcessRunner considers non-zero exit code as error
+
 #### 0.1.5 - 21.01.2015
 * ProcessRunner uses the Either monad for error handling
 
