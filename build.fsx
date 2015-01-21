@@ -155,7 +155,7 @@ Target "NuGet" (fun _ ->
 
     //CleanDir nugetDocsDir
     CleanDir nugetlibDir
-    let excludeBins = set ["hopac"; "hopac.core"; "hopac.extra"; "hopac.platform"]
+    let excludeBins = set ["fsharp.core"; "hopac"; "hopac.core"; "hopac.extra"; "hopac.platform"]
     CopyDir nugetlibDir "bin" (fun file -> 
         not <| excludeBins.Contains (Path.GetFileNameWithoutExtension(file).ToLower()))
     //CopyDir nugetDocsDir "./docs/output" allFiles
