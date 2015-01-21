@@ -24,8 +24,7 @@ module ProcessRunner =
     let createProcess startInfo = new Process(StartInfo = startInfo, EnableRaisingEvents = true)
 
     [<NoComparison>]
-    type ExitResult = 
-        | Exited of errorCode: int 
+    type ExitError = 
         | CannotExit
         | KillTimeout
         | CannotKill of exn
@@ -33,26 +32,27 @@ module ProcessRunner =
     let private kill (p: Process) =
         p.CancelOutputRead()
         if p.HasExited then
-            Exited p.ExitCode
+            Ok p.ExitCode
         else
             try p.Kill() 
                 if p.WaitForExit 10000 then 
-                    Exited p.ExitCode 
-                else KillTimeout
-            with e -> CannotKill e
+                    Ok p.ExitCode 
+                else Fail KillTimeout
+            with e -> Fail (CannotKill e)
 
     type Line = string
+    type ExitCode = int
     
     [<NoComparison; NoEquality>]
     type RunningProcess = 
         { /// Process's standard output feed.
           LineOutput: Alt<Line>
           /// Available for picking when the process has exited.
-          ProcessExited: Alt<ExitResult>
+          ProcessExited: Alt<Choice<ExitCode, ExitError>>
           /// Available for picking when the process StartTime + given timeout >= now.
           Timeout: TimeSpan -> Alt<unit>
           /// Synchronously kill the process.
-          Kill: unit -> ExitResult }
+          Kill: unit -> Choice<ExitCode, ExitError> }
 
     /// Starts given Process asynchronously and returns RunningProcess instance.
     let startProcess (p: Process) : RunningProcess =

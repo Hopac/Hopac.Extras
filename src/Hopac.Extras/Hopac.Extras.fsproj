@@ -53,6 +53,7 @@
   </Choose>
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
+    <Compile Include="Utils.fs" />
     <Compile Include="ObjectPool.fs" />
     <Compile Include="ProcessRunner.fs" />
     <None Include="Scripts\ObjectPool.fsx" />

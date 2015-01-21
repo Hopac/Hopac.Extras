@@ -1,3 +1,6 @@
+#### 0.1.5 - 21.01.2015
+* ProcessRunner uses the Either monad for error handling
+
 #### 0.1.4 - 21.01.2015
 * Enrich ProcessRunner interface
 * Add comments
