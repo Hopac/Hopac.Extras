@@ -7,7 +7,6 @@ open Hopac.Alt.Infixes
 
 module ProcessRunner =
     open System.Diagnostics
-    open System
 
     /// Creates ProcessStartInfo to start a process with no window and redirected standard output and error.
     let createStartInfo exePath args =
@@ -54,10 +53,12 @@ module ProcessRunner =
           LineOutput: Alt<Line>
           /// Available for picking when the process has exited.
           ProcessExited: Alt<Choice<unit, ExitError>>
-          /// Available for picking when the process StartTime + given timeout >= now.
-          Timeout: TimeSpan -> Alt<unit>
           /// Synchronously kill the process.
-          Kill: unit -> Choice<unit, ExitError> }
+          Kill: unit -> Job<Choice<unit, ExitError>> }
+        interface IAsyncDisposable with
+            member x.DisposeAsync() = x.Kill() |>> ignore
+                
+            
 
     /// Starts given Process asynchronously and returns RunningProcess instance.
     let startProcess (p: Process) : RunningProcess =
@@ -74,18 +75,59 @@ module ProcessRunner =
         p.Exited.Add <| fun _ -> processExited <-= kill p |> start
         if not <| p.Start() then failwithf "Cannot start %s." p.StartInfo.FileName
         p.BeginOutputReadLine()
-        let startTime = DateTime.UtcNow
-        
-        let timeoutAlt timeout = Alt.delay <| fun _ ->
-            match (startTime + timeout) - DateTime.UtcNow with
-            | t when t > TimeSpan.Zero -> Timer.Global.timeOut t
-            | _ -> Alt.always()
 
         { LineOutput = lineOutput   
           ProcessExited = processExited
-          Timeout = timeoutAlt
-          Kill = fun _ -> kill p }        
+          Kill = fun _ -> Job.result (kill p) }        
 
     /// Starts given process asynchronously and returns RunningProcess instance.
     let start exePath args = createStartInfo exePath args |> createProcess |> startProcess
-    
+
+module File =    
+    open System.IO
+
+    /// Becomes available for picking if file exists. 
+    /// If file does not exist, it keeps non-blocking pooling indefinitely.
+    let fileExists path = 
+        let exists = ivar()
+        let rec loop() = Job.delay <| fun _ ->
+            if File.Exists path then exists <-= ()
+            else Timer.Global.timeOutMillis 500 >>. loop()
+        start (loop())
+        exists :> Alt<_>
+        
+    /// If file exists, it creates StreamReader over it and become available for picking.
+    /// If file does not exists, it keeps non-blocking pooling indefinitely.
+    let openStreamReader path =
+        fileExists path |>>? fun _ -> 
+            let file = new FileStream (path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+            new StreamReader(file)
+
+    [<NoComparison; NoEquality>]
+    type FileReader =
+        { /// Available for picking when a new line appeared in the file.
+          NewLine: Alt<string> 
+          /// Creates a job that disposes the file.
+          Close: unit -> Job<unit> }
+        interface IAsyncDisposable with
+            member x.DisposeAsync() = x.Close()
+
+    /// Reads a text file continuously, performing non-blocking pooling for new lines.
+    /// It's safe to call when file does not exist yet. When the file is created, 
+    // this function opens it and starts reading.
+    let startReading (path: string) : FileReader =
+        let newLine = mb()
+        let close = ivar()
+
+        let readLineAlt (file: StreamReader) : Alt<string> = Alt.delay <| fun _ -> 
+            if file.EndOfStream then Alt.never()
+            else Alt.always (file.ReadLine())
+
+        let rec loop (file: StreamReader) = Job.delay <| fun _ ->
+            (readLineAlt file >>=? Mailbox.send newLine >>.? loop file) <|>?
+            (close |>>? fun _ -> file.Dispose()) <|>?
+            (Timer.Global.timeOutMillis 500 >>.? loop file)
+        
+        start (openStreamReader path >>=? loop)
+        { NewLine = newLine
+          Close = fun _ -> IVar.tryFill close () }

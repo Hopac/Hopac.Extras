@@ -55,11 +55,11 @@
   <ItemGroup>
     <Compile Include="Utils.fs" />
     <Compile Include="ObjectPool.fs" />
-    <Compile Include="ProcessRunner.fs" />
+    <Compile Include="IO.fs" />
     <None Include="Scripts\ObjectPool.fsx" />
     <None Include="Scripts\load-references.fsx" />
     <None Include="Scripts\load-project.fsx" />
-    <None Include="Scripts\ProcessRunner.fsx" />
+    <None Include="Scripts\IO.fsx" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />

@@ -1,3 +1,7 @@
+#### 0.1.7 - 22.01.2015
+* Add some Hopac-friendly operations on files
+* Simplify ProcessRunner API
+
 #### 0.1.6 - 21.01.2015
 * ProcessRunner considers non-zero exit code as error
 
