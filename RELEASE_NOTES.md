@@ -1,3 +1,6 @@
+#### 0.1.8 - 23.01.2015
+* Fixed: ProcessRunner and File's DisposeAsync return not delayed jobs which causes immediate disposing on construction
+
 #### 0.1.7 - 22.01.2015
 * Add some Hopac-friendly operations on files
 * Simplify ProcessRunner API
