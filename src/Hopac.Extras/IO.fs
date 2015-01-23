@@ -1,14 +1,14 @@
 ﻿namespace Hopac.Extras
 
+open System
+open System.Diagnostics
 open Hopac
 open Hopac.Infixes
 open Hopac.Job.Infixes
 open Hopac.Alt.Infixes
 
 module ProcessRunner =
-    open System.Diagnostics
-
-    /// Creates ProcessStartInfo to start a process with no window and redirected standard output and error.
+    /// Creates ProcessStartInfo to start a hidden process with standard output / error redirected.
     let createStartInfo exePath args =
         ProcessStartInfo(
             FileName = exePath,
@@ -16,17 +16,16 @@ module ProcessRunner =
             CreateNoWindow = true,
             UseShellExecute = false,
             ErrorDialog = false,
-            RedirectStandardOutput = true,
+            RedirectStandardOutput = true, 
             RedirectStandardError = true)
 
-    /// Creates process with EnableRaisingEvents = true.
+    /// Creates process with EnableRaisingEvents = true. Does not actually start it.
     let createProcess startInfo = new Process(StartInfo = startInfo, EnableRaisingEvents = true)
 
     [<NoComparison>]
     type ExitError =
         | NonZeroExitCode of int
-        | CannotExit
-        | KillTimeout
+        | KillTimeout of TimeSpan
         | CannotKill of exn
 
     let private exitCodeToError = function
@@ -38,27 +37,23 @@ module ProcessRunner =
         if p.HasExited then
             exitCodeToError p.ExitCode
         else
+            let killTimeout = TimeSpan.FromSeconds 10.
             try p.Kill() 
-                if p.WaitForExit 10000 then 
+                if p.WaitForExit (int killTimeout.TotalMilliseconds) then 
                     exitCodeToError p.ExitCode 
-                else Fail KillTimeout
+                else Fail (KillTimeout killTimeout)
             with e -> Fail (CannotKill e)
 
-    type Line = string
-    type ExitCode = int
-    
     [<NoComparison; NoEquality>]
     type RunningProcess = 
         { /// Process's standard output feed.
-          LineOutput: Alt<Line>
+          LineOutput: Alt<string>
           /// Available for picking when the process has exited.
           ProcessExited: Alt<Choice<unit, ExitError>>
           /// Synchronously kill the process.
           Kill: unit -> Job<Choice<unit, ExitError>> }
         interface IAsyncDisposable with
-            member x.DisposeAsync() = x.Kill() |>> ignore
-                
-            
+            member x.DisposeAsync() = Job.delay x.Kill |>> ignore
 
     /// Starts given Process asynchronously and returns RunningProcess instance.
     let startProcess (p: Process) : RunningProcess =
@@ -72,13 +67,13 @@ module ProcessRunner =
             if args.Data <> null then 
                 lineOutput <<-+ args.Data |> start
         
-        p.Exited.Add <| fun _ -> processExited <-= kill p |> start
+        p.Exited.Add (fun _ -> processExited <-= kill p |> start)
         if not <| p.Start() then failwithf "Cannot start %s." p.StartInfo.FileName
         p.BeginOutputReadLine()
 
         { LineOutput = lineOutput   
           ProcessExited = processExited
-          Kill = fun _ -> Job.result (kill p) }        
+          Kill = fun _ -> job { return kill p }}
 
     /// Starts given process asynchronously and returns RunningProcess instance.
     let start exePath args = createStartInfo exePath args |> createProcess |> startProcess
@@ -110,7 +105,7 @@ module File =
           /// Creates a job that disposes the file.
           Close: unit -> Job<unit> }
         interface IAsyncDisposable with
-            member x.DisposeAsync() = x.Close()
+            member x.DisposeAsync() = Job.delay x.Close
 
     /// Reads a text file continuously, performing non-blocking pooling for new lines.
     /// It's safe to call when file does not exist yet. When the file is created, 
