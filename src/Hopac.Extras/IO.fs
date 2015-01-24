@@ -50,10 +50,10 @@ module ProcessRunner =
           LineOutput: Alt<string>
           /// Available for picking when the process has exited.
           ProcessExited: Alt<Choice<unit, ExitError>>
-          /// Synchronously kill the process.
-          Kill: unit -> Job<Choice<unit, ExitError>> }
+          /// Job that kills the process.
+          Kill: Job<Choice<unit, ExitError>> }
         interface IAsyncDisposable with
-            member x.DisposeAsync() = Job.delay x.Kill |>> ignore
+            member x.DisposeAsync() = x.Kill |>> ignore
 
     /// Starts given Process asynchronously and returns RunningProcess instance.
     let startProcess (p: Process) : RunningProcess =
@@ -73,7 +73,7 @@ module ProcessRunner =
 
         { LineOutput = lineOutput   
           ProcessExited = processExited
-          Kill = fun _ -> job { return kill p }}
+          Kill = job { return kill p }}
 
     /// Starts given process asynchronously and returns RunningProcess instance.
     let start exePath args = createStartInfo exePath args |> createProcess |> startProcess
@@ -103,9 +103,9 @@ module File =
         { /// Available for picking when a new line appeared in the file.
           NewLine: Alt<string> 
           /// Creates a job that disposes the file.
-          Close: unit -> Job<unit> }
+          Close: Job<unit> }
         interface IAsyncDisposable with
-            member x.DisposeAsync() = Job.delay x.Close
+            member x.DisposeAsync() = x.Close
 
     /// Reads a text file continuously, performing non-blocking pooling for new lines.
     /// It's safe to call when file does not exist yet. When the file is created, 
@@ -125,4 +125,4 @@ module File =
         
         start (openStreamReader path >>=? loop)
         { NewLine = newLine
-          Close = fun _ -> IVar.tryFill close () }
+          Close = IVar.tryFill close () }
