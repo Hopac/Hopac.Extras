@@ -85,11 +85,6 @@
           <Private>True</Private>
           <Paket>True</Paket>
         </Reference>
-        <Reference Include="Hopac.Extra">
-          <HintPath>..\..\packages\Hopac\lib\net45\Hopac.Extra.dll</HintPath>
-          <Private>True</Private>
-          <Paket>True</Paket>
-        </Reference>
         <Reference Include="Hopac.Platform">
           <HintPath>..\..\packages\Hopac\lib\net45\Hopac.Platform.dll</HintPath>
           <Private>True</Private>

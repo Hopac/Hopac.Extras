@@ -1,3 +1,7 @@
+#### 0.1.9 - 24.01.2015
+* Update Hopac to version 0.0.0.38
+* remove unnecessary delays in IO
+
 #### 0.1.8 - 23.01.2015
 * Fixed: ProcessRunner and File's DisposeAsync return not delayed jobs which causes immediate disposing on construction
 
