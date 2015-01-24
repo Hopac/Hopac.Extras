@@ -28,7 +28,7 @@ type ObjectPool<'a when 'a :> IDisposable>(createNew: unit -> 'a, ?capacity: uin
         let releaseAlt() =
             releaseCh >>=? fun instance ->
                 instance.LastUsed <- DateTime.UtcNow
-                Job.start (Timer.Global.timeOut inactiveTimeBeforeDispose >>.
+                Job.start (timeOut inactiveTimeBeforeDispose >>.
                            (maybeExpiredCh <-+ instance)) >>.
                 loop (instance :: available, given - 1u)
         // request for an instance

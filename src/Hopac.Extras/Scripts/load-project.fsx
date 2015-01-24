@@ -2,4 +2,5 @@
 #load @"load-references.fsx"
 #load @"..\Utils.fs"
       @"..\ObjectPool.fs"
+      @"..\ParallelExecutor.fs"
       @"..\IO.fs"

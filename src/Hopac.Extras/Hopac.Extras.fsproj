@@ -55,6 +55,7 @@
   <ItemGroup>
     <Compile Include="Utils.fs" />
     <Compile Include="ObjectPool.fs" />
+    <Compile Include="ParallelExecutor.fs" />
     <Compile Include="IO.fs" />
     <None Include="Scripts\ObjectPool.fsx" />
     <None Include="Scripts\load-references.fsx" />

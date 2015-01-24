@@ -87,7 +87,7 @@ module File =
         let exists = ivar()
         let rec loop() = Job.delay <| fun _ ->
             if File.Exists path then exists <-= ()
-            else Timer.Global.timeOutMillis 500 >>. loop()
+            else timeOutMillis 500 >>. loop()
         start (loop())
         exists :> Alt<_>
         
@@ -121,7 +121,7 @@ module File =
         let rec loop (file: StreamReader) = Job.delay <| fun _ ->
             (readLineAlt file >>=? Mailbox.send newLine >>.? loop file) <|>?
             (close |>>? fun _ -> file.Dispose()) <|>?
-            (Timer.Global.timeOutMillis 500 >>.? loop file)
+            (timeOutMillis 500 >>.? loop file)
         
         start (openStreamReader path >>=? loop)
         { NewLine = newLine

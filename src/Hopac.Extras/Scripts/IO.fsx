@@ -11,7 +11,7 @@ open Hopac.Extras
 
 // `Job.usingAsync` guaranties thet the rpocess will be killed when the given job finishes.
 Job.usingAsync (ProcessRunner.start "notepad.exe" "") <| fun pr ->
-    let timeoutAlt = Timer.Global.timeOutMillis 5000
+    let timeoutAlt = timeOutMillis 5000
     let rec loop() =
         // Wait for any of the following alternatives enabled (became available (for picking)).
         (pr.LineOutput >>=? fun line -> job { printfn "Line: %s" line } >>. loop()) <|>?

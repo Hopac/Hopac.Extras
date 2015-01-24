@@ -54,7 +54,7 @@ iteration()
 //es |> List.map (fun e -> Alt.delay <| fun _ ->
 //    match (e.LastUsed + timeout) - DateTime.Now with
 //    | t when t <= TimeSpan.Zero -> Alt.always e
-//    | t -> Timer.Global.timeOut t >>%? e)
+//    | t -> timeOut t >>%? e)
 //|> Alt.choose
 //|> run
 
@@ -67,6 +67,6 @@ iteration()
 //    
 //run (ch <-+ 0)
 //
-//(g (fun _ -> Timer.Global.timeOutMillis 10000 |>>? fun _ -> printfn "g timeout")) <|>?
-//(Timer.Global.timeOutMillis 3000 |>>? fun _ -> printfn "outer timeout")
+//(g (fun _ -> timeOutMillis 10000 |>>? fun _ -> printfn "g timeout")) <|>?
+//(timeOutMillis 3000 |>>? fun _ -> printfn "outer timeout")
 //|> run

@@ -12,10 +12,10 @@ open FsCheck
 open Hopac.Extras
 
 let private takeOrThrow ch = 
-    ch <|>? (Timer.Global.timeOutMillis 10000 |>>? fun _ -> failwith "timeout") |> run 
+    ch <|>? (timeOutMillis 10000 |>>? fun _ -> failwith "timeout") |> run 
 
 let private timeoutOrThrow timeout alt = 
-    (Timer.Global.timeOutMillis timeout |>>? fun _ -> ()) <|>?
+    (timeOutMillis timeout |>>? fun _ -> ()) <|>?
     (alt |>>? fun x -> failwithf "Expected timeout but was %A" x) |> run
 
 type private Entry = 
