@@ -32,17 +32,21 @@ module ProcessRunner =
         | 0 -> Ok()
         | code -> Fail (NonZeroExitCode code)
 
+    let private getExitCodeSafe (p: Process) = try p.ExitCode with _ -> 0
+    let private hasExitedSafe (p: Process) = try p.HasExited with _ -> true
+
     let private kill (p: Process) =
-        p.CancelOutputRead()
-        if p.HasExited then
-            exitCodeToError p.ExitCode
-        else
-            let killTimeout = TimeSpan.FromSeconds 10.
-            try p.Kill() 
-                if p.WaitForExit (int killTimeout.TotalMilliseconds) then 
-                    exitCodeToError p.ExitCode 
-                else Fail (KillTimeout killTimeout)
-            with e -> Fail (CannotKill e)
+        try
+            if hasExitedSafe p then
+                exitCodeToError (getExitCodeSafe p)
+            else
+                let killTimeout = TimeSpan.FromSeconds 10.
+                try p.Kill() 
+                    if p.WaitForExit (int killTimeout.TotalMilliseconds) then 
+                        exitCodeToError (getExitCodeSafe p)
+                    else Fail (KillTimeout killTimeout)
+                with e -> Fail (CannotKill e)
+        finally try p.Dispose() with _ -> ()
 
     [<NoComparison; NoEquality>]
     type RunningProcess = 
@@ -51,9 +55,9 @@ module ProcessRunner =
           /// Available for picking when the process has exited.
           ProcessExited: Alt<Choice<unit, ExitError>>
           /// Job that kills the process.
-          Kill: Job<Choice<unit, ExitError>> }
+          Kill: unit -> Job<Choice<unit, ExitError>> }
         interface IAsyncDisposable with
-            member x.DisposeAsync() = x.Kill |>> ignore
+            member x.DisposeAsync() = x.Kill() |>> ignore
 
     /// Starts given Process asynchronously and returns RunningProcess instance.
     let startProcess (p: Process) : RunningProcess =
@@ -63,40 +67,28 @@ module ProcessRunner =
         // Subscribe for two events and use 'start' to execute a single message passing operation 
         // which guarantees that the operations can be/are observed in the order in which the events are triggered.
         // (If we would use queue the lines could be sent to the mailbox in some non-deterministic order.)
-        p.OutputDataReceived.Add <| fun args -> 
+        let outputSubscription = p.OutputDataReceived |> Observable.subscribe (fun args ->
             if args.Data <> null then 
-                lineOutput <<-+ args.Data |> start
+                lineOutput <<-+ args.Data |> start)
         
-        p.Exited.Add (fun _ -> processExited <-= kill p |> start)
+        let exitedSubscription = p.Exited |> Observable.subscribe (fun _ -> 
+            let exitCode = getExitCodeSafe p
+            processExited <-= exitCodeToError exitCode |> start)
         if not <| p.Start() then failwithf "Cannot start %s." p.StartInfo.FileName
         p.BeginOutputReadLine()
 
         { LineOutput = lineOutput   
           ProcessExited = processExited
-          Kill = job { return kill p }}
+          Kill = fun _ -> job { 
+            outputSubscription.Dispose()
+            exitedSubscription.Dispose()
+            return kill p }}
 
     /// Starts given process asynchronously and returns RunningProcess instance.
     let start exePath args = createStartInfo exePath args |> createProcess |> startProcess
 
 module File =    
     open System.IO
-
-    /// Becomes available for picking if file exists. 
-    /// If file does not exist, it keeps non-blocking pooling indefinitely.
-    let fileExists path = 
-        let exists = ivar()
-        let rec loop() = Job.delay <| fun _ ->
-            if File.Exists path then exists <-= ()
-            else timeOutMillis 500 >>. loop()
-        start (loop())
-        exists :> Alt<_>
-        
-    /// If file exists, it creates StreamReader over it and become available for picking.
-    /// If file does not exists, it keeps non-blocking pooling indefinitely.
-    let openStreamReader path =
-        fileExists path |>>? fun _ -> 
-            let file = new FileStream (path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
-            new StreamReader(file)
 
     [<NoComparison; NoEquality>]
     type FileReader =
@@ -114,15 +106,35 @@ module File =
         let newLine = mb()
         let close = ivar()
 
+        /// Becomes available for picking if file exists. 
+        /// If file does not exist, it keeps non-blocking pooling until `close` ivar is filled.
+        let fileExists path = 
+            let exists = ivar()
+            let rec loop() = Job.delay <| fun _ ->
+                close >>%? () <|>?
+                (Alt.guard << Job.delay <| fun _ -> 
+                    if File.Exists path then exists <-= () >>% Alt.always()
+                    else Job.result <| Alt.never()) >>%? () <|>?
+                (timeOutMillis 500 >>.? loop())
+            start (loop())
+            exists :> Alt<_>
+        
+        /// If file exists, it creates StreamReader over it and become available for picking.
+        /// If file does not exists, it keeps non-blocking pooling until `close` ivar is filled.
+        let openStreamReader path =
+            fileExists path |>>? fun _ -> 
+                let file = new FileStream (path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                new StreamReader(file)
+
         let readLineAlt (file: StreamReader) : Alt<string> = Alt.delay <| fun _ -> 
             if file.EndOfStream then Alt.never()
             else Alt.always (file.ReadLine())
 
-        let rec loop (file: StreamReader) = Job.delay <| fun _ ->
-            (readLineAlt file >>=? Mailbox.send newLine >>.? loop file) <|>?
+        let rec openedStreamReader (file: StreamReader) = Job.delay <| fun _ ->
+            (readLineAlt file >>=? Mailbox.send newLine >>.? openedStreamReader file) <|>?
             (close |>>? fun _ -> file.Dispose()) <|>?
-            (timeOutMillis 500 >>.? loop file)
+            (timeOutMillis 500 >>.? openedStreamReader file)
         
-        start (openStreamReader path >>=? loop)
+        start (openStreamReader path >>=? openedStreamReader)
         { NewLine = newLine
           Close = IVar.tryFill close () }
