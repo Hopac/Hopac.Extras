@@ -10,6 +10,7 @@ open System
 open System.Threading
 open FsCheck 
 open Hopac.Extras
+open FsCheck.Prop
 
 let private takeOrThrow ch = 
     ch <|>? (timeOutMillis 10000 |>>? fun _ -> failwith "timeout") |> run 
@@ -179,17 +180,11 @@ let ``returns instance to the pool even though the job raises exception``() =
 type TestCase = TestCase of capacity: uint32 * jobs: int32
 
 type Generators = 
-    static member Capacity() = 
-        { new Arbitrary<TestCase>() with
-              member __.Generator = 
-                  gen { 
-                      let! value = Gen.choose (1, 20)
-                      let! jobs = Gen.choose (1, 100)
-                      return TestCase (uint32 value, jobs)
-                  }}
-
-[<TestFixtureSetUp>]
-let setUp() = Arb.register<Generators>() |> ignore
+    static member Capacity =
+        fun value jobs -> TestCase (uint32 value, jobs)
+        <!> Gen.choose (1, 20)
+        <*> Gen.choose (1, 100)
+        |> Arb.fromGen 
 
 [<Test; Timeout(timeout)>]
 let ``all jobs are executed``() =
@@ -205,7 +200,7 @@ let ``all jobs are executed``() =
         //printfn "Actual = %A" !results
         !results = expected
 
-    Check.VerboseThrowOnFailure prop 
+    Check.VerboseThrowOnFailure (forAll Generators.Capacity prop)
 
 [<Test; Timeout(timeout)>]
 let ``does not create more instances than capacity``() =
@@ -220,4 +215,4 @@ let ``does not create more instances than capacity``() =
         //printfn "Actual = %A" actual
         actual <= int capacity
 
-    Check.VerboseThrowOnFailure prop 
+    Check.VerboseThrowOnFailure (forAll Generators.Capacity prop)

@@ -6,42 +6,53 @@ open Hopac.Job.Infixes
 open Hopac.Alt.Infixes
 
 /// Worker execution error.
-type WorkerError<'a> =
+type WorkerError<'error> =
     /// The message which causes this error is queued to `failedMessages` queue 
     /// and is executed later.
-    | Recoverable of 'a
+    | Recoverable of 'error
     /// The message which causes this error is not executed again. 
-    | Fatal of 'a
+    | Fatal of 'error
+
 
 /// Distributes messages among up to `degree` `worker`s which run in parallel. Degree of parallelism can be 
 /// dynamically changed. If `worker` returns `Recoverable` WorkerError as a result, the message is queued to
 /// special `failedMessages` Mailbox which is used as an alternative source of messages, i.e. messages are 
 /// taken from `source` and `failedMessages` non deterministically. 
-type ParallelExecutor<'msg, 'res, 'error>
+type ParallelExecutor<'msg, 'error>
     (
-        degree: int,
+        degree: uint16,
         source: Alt<'msg>, 
-        worker: 'msg -> Job<Choice<'res, 'msg * WorkerError<'error>>>
+        worker: 'msg -> Job<Choice<unit, WorkerError<'error>>>,
+        ?completed: Mailbox<'msg * Choice<unit, WorkerError<'error>>>
     ) =
-    let setDegree = ch<int>() 
-    let workDone = ch<Choice<'res, 'msg * WorkerError<'error>>>()
+    let setDegree = ch<uint16>() 
+    let workDone = ch<Choice<unit, WorkerError<_>>>()
     let failedMessages = mb()
      
-    let pool = Job.iterateServer (degree, 0)  <| fun (degree, usage) ->
-        (setDegree |>>? fun degree -> degree, usage) <|>? 
-        (workDone |>>? fun _ -> degree, usage - 1) <|>?
-        (if usage < degree then
+    let pool = Job.iterateServer (degree, 0u)  <| fun (degree, usage) ->
+        let setDegreeAlt() = setDegree |>>? fun degree -> degree, usage
+        let workDoneAlt() = workDone |>>? fun _ -> degree, usage - 1u
+
+        let processMessageAlt() =
             source <~>? failedMessages >>=? fun msg -> 
                 job {
                     let! result = worker msg 
-                    match result with
-                    | Fail (msg, Recoverable _) -> do! failedMessages <<-+ msg
-                    | Fail (_, Fatal _)
-                    | Ok _ -> () 
-                    do! workDone <-- result }
+                    return! 
+                        match result with
+                        | Fail (Recoverable _) -> failedMessages <<-+ msg
+                        | Fail (Fatal _)
+                        | Ok ->
+                            match completed with
+                            | Some mb -> mb <<-+ (msg, result)
+                            | None -> Job.unit()
+                        >>. (workDone <-- result) }
                 |> Job.queue
-            >>% (degree, usage + 1)
-         else Alt.never()) 
+            >>% (degree, usage + 1u)
+
+        if usage < uint32 degree then
+            setDegreeAlt() <|>? workDoneAlt() <|>? processMessageAlt()
+        else 
+            setDegreeAlt() <|>? workDoneAlt()
     do start pool
     /// Sets new degree of parallelism.
     member __.SetDegree value = setDegree <-+ value |> run

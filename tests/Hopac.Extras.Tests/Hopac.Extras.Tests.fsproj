@@ -57,6 +57,7 @@
   <ItemGroup>
     <Content Include="App.config" />
     <Compile Include="ObjectPoolTests.fs" />
+    <Compile Include="ParallelExecutorTests.fs" />
     <None Include="paket.references" />
   </ItemGroup>
   <ItemGroup>
