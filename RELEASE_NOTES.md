@@ -1,6 +1,10 @@
+#### 0.1.11 - 01.02.2015
+* fixed: ParallelExecutor hangs if a worker returns Recoverable error
+* update to Hopac 0.0.0.39
+
 #### 0.1.10 - 26.01.2015
 * fixed: ProcessRunner does not dispose Process object
-* fixed memory leak: File.startReading starts forever live `fileExists` job which prevents GC to collect FileReader.
+* fixed memory leak: File.startReading starts forever live `fileExists` job which prevents GC to collect FileReader
 
 #### 0.1.9 - 24.01.2015
 * Update Hopac to version 0.0.0.38
