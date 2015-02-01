@@ -35,21 +35,16 @@ type ParallelExecutor<'msg, 'error>
 
         let processMessageAlt() =
             source <~>? failedMessages >>=? fun msg ->
-                printfn "[R] got %O" msg
                 job {
                     let! result = worker msg
-                    printfn "[R] worker result: %A" result
-                    return! Job.delay <| fun _ ->
-                        match result with
-                        | Fail (Recoverable _) -> failedMessages <<-+ msg
-                        | Fail (Fatal _)
-                        | Ok ->
-                            match completed with
-                            | Some mb ->    
-                                printf "[R] sending %O to completed..." msg
-                                mb <<-+ (msg, result)
-                                >>% printfn "done."
-                            | None -> Job.unit()
+                    return!
+                        (match result with
+                         | Fail (Recoverable _) -> failedMessages <<-+ msg
+                         | Fail (Fatal _)
+                         | Ok ->
+                             match completed with
+                             | Some mb -> mb <<-+ (msg, result)
+                             | None -> Job.unit())
                         >>. (workDone <-- result) }
                 |> Job.queue
             >>% (degree, usage + 1u)

@@ -35,7 +35,7 @@ type MessageWithResults =
 type Generators = 
     static member MessageResultsArb = 
         fun results -> results @ [Ok()]
-        <!> Arb.generate |> Gen.nonEmptyListOf
+        <!> Arb.generate |> Gen.nonEmptyListOf |> Gen.resize 5
         |> Arb.fromGen
 
 [<Test; Explicit; Timeout(5000)>]
@@ -55,21 +55,12 @@ let ``processes a message until worker returns OK``() =
                     h 
             ), completed)
 
-        printfn ">> %d msgs" messages.Length
         messages |> List.map (fun x -> source <-- x) |> Job.conIgnore |> start
-        printfn ">>> %d msgs" messages.Length
         let actual = 
             messages 
-            |> List.mapi (fun i _ -> 
-                job {
-                    printfn "[T] waiting for %d..." i
-                    let! msg = completed 
-                    printfn "[T] got %d: %O" i msg
-                    return msg 
-                })
+            |> List.map (fun _ -> Mailbox.take completed)
             |> Job.conCollect
             |> run
-        printfn ">>>> %d msgs" messages.Length
         actual 
         |> Seq.map (fun (m, _) -> m.LastResult) 
         |> Seq.forall (function Some Ok | Some (Fail (Fatal _)) -> true | _ -> false)
