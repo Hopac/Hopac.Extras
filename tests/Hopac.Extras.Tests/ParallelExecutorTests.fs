@@ -27,20 +27,21 @@ let ``processes all messages in source``() =
     Check.VerboseThrowOnFailure prop
     
 type MessageWithResults = 
-    { Id: Guid
+    { Id: int
       mutable LastResult: Choice<unit, WorkerError<unit>> option
       mutable Results: Choice<unit, WorkerError<unit>> list }
+    override x.ToString() = sprintf "Msg (Id = %O)" x.Id
 
 type Generators = 
-    static member MessageWithResultsArb = 
-        fun id results -> { Id = id; Results = results @ [Ok()]; LastResult = None }
-        <!> Arb.generate<Guid>
-        <*> Arb.generate |> Gen.nonEmptyListOf
+    static member MessageResultsArb = 
+        fun results -> results @ [Ok()]
+        <!> Arb.generate |> Gen.nonEmptyListOf
         |> Arb.fromGen
 
 [<Test; Explicit; Timeout(5000)>]
 let ``processes a message until worker returns OK``() =
-    let prop (messages: MessageWithResults list) =
+    let prop (results: Choice<unit, WorkerError<unit>> list list) =
+        let messages = results |> List.mapi (fun i r -> { Id = i; LastResult = None; Results = r })
         let source = ch<MessageWithResults>()
         let completed = mb()
         let _ = ParallelExecutor(1us, source, (fun msg -> 
@@ -54,20 +55,23 @@ let ``processes a message until worker returns OK``() =
                     h 
             ), completed)
 
-        messages |> List.map (fun x -> source <-- x) |> Job.conIgnore |> run
+        printfn ">> %d msgs" messages.Length
+        messages |> List.map (fun x -> source <-- x) |> Job.conIgnore |> start
+        printfn ">>> %d msgs" messages.Length
         let actual = 
             messages 
-            |> List.mapi (fun i _ -> job {
-                printfn "Waiting for msg #%d..." i
-                let! msg = completed 
-                printfn "Got msg #%d: %A" i msg
-                return msg })
+            |> List.mapi (fun i _ -> 
+                job {
+                    printfn "[T] waiting for %d..." i
+                    let! msg = completed 
+                    printfn "[T] got %d: %O" i msg
+                    return msg 
+                })
             |> Job.conCollect
             |> run
-        
+        printfn ">>>> %d msgs" messages.Length
         actual 
         |> Seq.map (fun (m, _) -> m.LastResult) 
         |> Seq.forall (function Some Ok | Some (Fail (Fatal _)) -> true | _ -> false)
         
-
-    Check.VerboseThrowOnFailure (forAll Generators.MessageWithResultsArb prop)
+    Check.VerboseThrowOnFailure (forAll Generators.MessageResultsArb prop)

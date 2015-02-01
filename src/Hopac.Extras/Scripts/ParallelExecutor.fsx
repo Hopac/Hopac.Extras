@@ -18,9 +18,9 @@ let completed = mb()
 let _ = ParallelExecutor<Msg, unit>(1us, src, (fun msg -> 
     job { 
         incr msg
-        return if !msg = 1 then Fail (Recoverable ()) else Ok() 
+        return Fail (Fatal ()) // if !msg = 1 then Fail (Fatal ()) else Ok() 
     }), completed)
 
 Job.forUpTo 1 5 (fun i -> src <-- ref i) 
 >>. ([1..5] |> List.map (fun _ -> completed) |> Job.conCollect)
-|> run
+|> run 
