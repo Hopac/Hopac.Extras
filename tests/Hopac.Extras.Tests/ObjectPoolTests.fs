@@ -21,9 +21,12 @@ let private timeoutOrThrow timeout alt =
 
 type private Entry = 
     { Value: int
-      mutable Disposed: bool }
+      mutable Disposed: bool
+      ThrowOnDispose: bool }
     interface IDisposable with
-        member x.Dispose() = x.Disposed <- true
+        member x.Dispose() =
+            x.Disposed <- true
+            if x.ThrowOnDispose then failwithf "%A: exception in Dispose" x
 
 type private Creator =
     { NewInstance: unit -> Entry
@@ -43,14 +46,16 @@ type private Creator =
 //    { NewInstance = fun() -> run createNewCh
 //      CreatedInstances = fun _ -> run getInstanceCountCh }
 
-let private creator() = 
+let private creatorWith throwOnDispose () = 
     let instances = ref [||]
     
     { NewInstance = fun() -> 
-        let newInstance = { Value = (!instances).Length; Disposed = false }
+        let newInstance = { Value = (!instances).Length; Disposed = false; ThrowOnDispose = throwOnDispose }
         instances := Array.append !instances [|newInstance|]
         newInstance
       CreatedInstances = fun _ -> List.ofArray !instances }
+
+let private creator = creatorWith false
 
 [<Literal>]
 let private timeout = 10000
@@ -139,6 +144,19 @@ let ``instance is disposed and removed from pool after it's been unused for cert
     // wait while the instance is considered obsolete 
     Thread.Sleep (int inactiveTime.TotalMilliseconds * 2)
     instance.Disposed =? true
+
+[<Test; Timeout(timeout)>]
+let ``it's ok if instance throws exception in Dispose``() =
+    let creator = creatorWith true ()
+    let inactiveTime = TimeSpan.FromSeconds 1.
+    let pool = new ObjectPool<_>(creator.NewInstance, 1u, inactiveTime)
+    // force the pool to create an instance
+    run <| pool.WithInstanceJob (fun _ -> Job.unit())
+    let instance = creator.CreatedInstances() |> List.head
+    Thread.Sleep (int inactiveTime.TotalMilliseconds * 2)
+    instance.Disposed =? true
+    // check that the pool is still working ok
+    run <| pool.WithInstanceJob (fun _ -> Job.result 1) =? 1
     
 [<Test; Timeout(timeout)>]
 let ``instance is not disposed and is not removed from pool if it's reused before it becomes obsolete``() =

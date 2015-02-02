@@ -9,7 +9,12 @@ open System
 type private PoolEntry<'a when 'a :> IDisposable> = 
     { Value: 'a
       mutable LastUsed: DateTime }
-    with static member Create(value: 'a) = { Value = value; LastUsed = DateTime.UtcNow }
+    static member Create(value: 'a) = { Value = value; LastUsed = DateTime.UtcNow }
+    interface IDisposable with
+        member x.Dispose() = 
+            // Mute exceptions those may be raised in instance's Dispose method to prevent the pool 
+            // to stop looping.
+            try x.Value.Dispose() with _ -> ()
 
 /// Bounded pool of disposable objects. If number of given objects is equal to capacity then client will be blocked as it tries to get an instance. 
 /// If an object in pool is not used more then inactiveTimeBeforeDispose period of time, it's disposed and removed from the pool. 
@@ -19,8 +24,8 @@ type ObjectPool<'a when 'a :> IDisposable>(createNew: unit -> 'a, ?capacity: uin
     let inactiveTimeBeforeDispose = defaultArg inactiveTimeBeforeDispose (TimeSpan.FromMinutes 1.)
     let reqCh = ch<Promise<unit> * 'a PoolEntry Ch>()
     let releaseCh = ch<'a PoolEntry>()
-    let maybeExpiredCh = ch<'a PoolEntry>() 
-    let dispose = ivar()
+    let maybeExpiredCh = ch<'a PoolEntry>()
+    let doDispose = ivar()
     let hasDisposed = ivar()
     
     let rec loop (available: 'a PoolEntry list, given: uint32) = Job.delay <| fun _ ->
@@ -45,18 +50,17 @@ type ObjectPool<'a when 'a :> IDisposable>(createNew: unit -> 'a, ?capacity: uin
             maybeExpiredCh >>=? fun instance ->
                 if DateTime.UtcNow - instance.LastUsed > inactiveTimeBeforeDispose 
                    && List.exists (fun x -> obj.ReferenceEquals(x, instance)) available then
-                    instance.Value.Dispose()
+                    dispose instance
                     loop (available |> List.filter (fun x -> not <| obj.ReferenceEquals(x, instance)), given)
                 else loop (available, given)
 
         // the entire pool is disposing
         let disposeAlt() = 
-            dispose >>=? fun _ ->
+            doDispose >>=? fun _ ->
                 // dispose all instances that are in pool
-                available |> List.iter (fun x -> x.Value.Dispose())
+                available |> List.iter dispose
                 // wait until all given instances are returns to pool and disposing them on the way
-                Job.forN (int given) (releaseCh |>> fun instance -> instance.Value.Dispose()) >>. 
-                (hasDisposed <-= ())
+                Job.forN (int given) (releaseCh |>> dispose) >>. (hasDisposed <-= ())
 
         if given < capacity then
             // if number of given objects has not reached the capacity, synchronize on request channel as well
@@ -70,8 +74,8 @@ type ObjectPool<'a when 'a :> IDisposable>(createNew: unit -> 'a, ?capacity: uin
         let replyCh = ch()
         reqCh <-+ (nack, replyCh) >>% replyCh
 
-    /// Gets an available instance from pool or create a new one, then passes it to function f,
-    /// then returns the instance back to the pool (even if f or the job returned by f raise exceptions).
+    /// Applies a function, that returns a Job, on an instance from pool. Returns `Alt` to consume 
+    /// the function result.
     member __.WithInstanceJob (f: 'a -> #Job<'r>) : Alt<'r> =
         get() >>=? fun entry -> 
             Job.tryFinallyJob 
@@ -79,12 +83,17 @@ type ObjectPool<'a when 'a :> IDisposable>(createNew: unit -> 'a, ?capacity: uin
                 (releaseCh <-- entry)
              
     interface IAsyncDisposable with
-        member __.DisposeAsync() = IVar.tryFill dispose () >>. hasDisposed
+        member __.DisposeAsync() = IVar.tryFill doDispose () >>. hasDisposed
 
     interface IDisposable with
         /// Runs disposing asynchronously. Does not wait until the disposing finishes. 
         member x.Dispose() = (x :> IAsyncDisposable).DisposeAsync() |> start
 
 type ObjectPool with
+    /// Applies a function on an instance from pool. Returns the function result.
     member x.WithInstance f = x.WithInstanceJob (fun a -> Job.result (f a))
+    /// Returns an Async that applies a function on an instance from pool and returns the function result.
     member x.WithInstanceAsync f = async { run (x.WithInstance f) }
+    /// Applies a function on an instance from pool, synchronously, in the thread in which it's called.
+    /// Warning! Can deadlock being called from application main thread.
+    member x.WithInstanceSync f = x.WithInstance f |> run
