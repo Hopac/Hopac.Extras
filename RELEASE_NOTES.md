@@ -1,3 +1,6 @@
+#### 0.1.12 - 02.02.2015
+* ObjectPool ignores any exceptions in instance's Dispose
+
 #### 0.1.11 - 01.02.2015
 * fixed: ParallelExecutor hangs if a worker returns Recoverable error
 * update to Hopac 0.0.0.39
