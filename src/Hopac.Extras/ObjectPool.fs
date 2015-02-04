@@ -6,7 +6,7 @@ open Hopac.Job.Infixes
 open Hopac.Alt.Infixes
 open System
 
-type private PoolEntry<'a when 'a :> IDisposable> = 
+type private PoolEntry<'a> = 
     { Value: 'a
       mutable LastUsed: DateTime }
     static member Create(value: 'a) = { Value = value; LastUsed = DateTime.UtcNow }
@@ -14,12 +14,16 @@ type private PoolEntry<'a when 'a :> IDisposable> =
         member x.Dispose() = 
             // Mute exceptions those may be raised in instance's Dispose method to prevent the pool 
             // to stop looping.
-            try x.Value.Dispose() with _ -> ()
+            try 
+                match box x.Value with
+                | :? IDisposable as d -> d.Dispose()
+                | _ -> ()
+            with _ -> ()
 
 /// Bounded pool of disposable objects. If number of given objects is equal to capacity then client will be blocked as it tries to get an instance. 
 /// If an object in pool is not used more then inactiveTimeBeforeDispose period of time, it's disposed and removed from the pool. 
 /// When the pool is disposing itself, it disposes all objects it caches first.
-type ObjectPool<'a when 'a :> IDisposable>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBeforeDispose: TimeSpan) =
+type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBeforeDispose: TimeSpan) =
     let capacity = defaultArg capacity 50u
     let inactiveTimeBeforeDispose = defaultArg inactiveTimeBeforeDispose (TimeSpan.FromMinutes 1.)
     let reqCh = ch<Promise<unit> * 'a PoolEntry Ch>()

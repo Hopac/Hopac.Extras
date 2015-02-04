@@ -1,3 +1,6 @@
+#### 0.1.13 - 04.02.2015
+* ObjectPool does not require instances to implement IDisposable
+
 #### 0.1.12 - 02.02.2015
 * ObjectPool ignores any exceptions in instance's Dispose
 
