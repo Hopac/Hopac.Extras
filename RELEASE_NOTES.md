@@ -1,3 +1,6 @@
+#### 0.1.14 - 04.02.2015
+* use IVar.tryFill in Process.Exited event handler since it may be called several times
+
 #### 0.1.13 - 04.02.2015
 * ObjectPool does not require instances to implement IDisposable
 
