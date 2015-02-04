@@ -67,22 +67,19 @@ module ProcessRunner =
         // Subscribe for two events and use 'start' to execute a single message passing operation 
         // which guarantees that the operations can be/are observed in the order in which the events are triggered.
         // (If we would use queue the lines could be sent to the mailbox in some non-deterministic order.)
-        let outputSubscription = p.OutputDataReceived |> Observable.subscribe (fun args ->
+        p.OutputDataReceived.Add (fun args ->
             if args.Data <> null then 
                 lineOutput <<-+ args.Data |> start)
         
-        let exitedSubscription = p.Exited |> Observable.subscribe (fun _ -> 
+        p.Exited.Add (fun _ -> 
             let exitCode = getExitCodeSafe p
-            processExited <-= exitCodeToError exitCode |> start)
+            IVar.tryFill processExited (exitCodeToError exitCode) |> start)
         if not <| p.Start() then failwithf "Cannot start %s." p.StartInfo.FileName
         p.BeginOutputReadLine()
 
         { LineOutput = lineOutput   
           ProcessExited = processExited
-          Kill = fun _ -> job { 
-            outputSubscription.Dispose()
-            exitedSubscription.Dispose()
-            return kill p }}
+          Kill = fun _ -> job { return kill p }}
 
     /// Starts given process asynchronously and returns RunningProcess instance.
     let start exePath args = createStartInfo exePath args |> createProcess |> startProcess
