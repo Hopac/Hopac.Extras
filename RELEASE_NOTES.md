@@ -1,3 +1,6 @@
+#### 0.1.15 - 06.02.2015
+* Add JobChoice computation expression
+
 #### 0.1.14 - 04.02.2015
 * use IVar.tryFill in Process.Exited event handler since it may be called several times
 
