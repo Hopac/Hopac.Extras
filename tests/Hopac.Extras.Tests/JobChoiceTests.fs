@@ -1,5 +1,6 @@
 ﻿module Hopac.Extras.Tests.JobChoiceTests
 
+open System
 open Hopac
 open Hopac.Infixes
 open Hopac.Job.Infixes
@@ -7,6 +8,7 @@ open Hopac.Extras
 open FsCheck
 open System.Threading.Tasks
 open NUnit.Framework
+open Swensen.Unquote
 
 let private check = Check.VerboseThrowOnFailure
 
@@ -42,3 +44,22 @@ let map() =
 let mapError() =
   check (fun (x: Choice<_, int>) (Function.F(_, e2f: int -> _)) ->
     run (JobChoice.mapError e2f (Job.result x)) = Choice.mapError e2f x)
+
+[<Test>]
+let ``using``() =
+  let disposed = ref false
+  jobChoice {
+    use! __ = Job.result (Ok { new IDisposable with member __.Dispose() = disposed := true })
+    return ()
+  } |> run |> ignore
+  !disposed =? true
+
+[<Test>]
+let ``for``() =
+  let r = ref []
+  jobChoice {
+    for x in 1..20 do
+      let! y = if x <= 10 then JobChoice.result x else Job.result (Fail ())
+      r := !r @ [y]
+  } |> run |> ignore
+  !r =? [1..10]
