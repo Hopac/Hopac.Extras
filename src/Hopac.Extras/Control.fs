@@ -14,9 +14,9 @@ module JobChoice =
     | Ok x -> x2yJ x 
   let bindAsync (xA: Async<Choice<'x, 'e>>) (x2yJ: 'x -> Job<Choice<'y, 'e>>) : Job<Choice<'y, 'e>> =
     bind (Async.toJob xA) x2yJ
-  let bindVoidTask (xT: Task<Choice<'x, 'e>>) (x2yJ: 'x -> Job<Choice<'y, 'e>>) : Job<Choice<'y, 'e>> =
+  let bindTask (xT: Task<Choice<'x, 'e>>) (x2yJ: 'x -> Job<Choice<'y, 'e>>) : Job<Choice<'y, 'e>> =
     bind (Task.awaitJob xT) x2yJ
-  let bindTask (uT: Task) (u2xJ: unit -> Job<Choice<'x, 'e>>) : Job<Choice<'x, 'e>> = 
+  let bindVoidTask (uT: Task) (u2xJ: unit -> Job<Choice<'x, 'e>>) : Job<Choice<'x, 'e>> = 
     Task.bindJob (uT, u2xJ)
 
   let result (x: 'x) : Job<Choice<'x, 'e>> = Job.result <| Ok x
@@ -38,9 +38,9 @@ type JobChoiceBuilder () =
   member __.Bind (xA: Async<Choice<'x, 'e>>, x2yJ: 'x -> Job<Choice<'y, 'e>>) : Job<Choice<'y, 'e>> =
     bindAsync xA x2yJ
   member __.Bind (xT: Task<Choice<'x, 'e>>, x2yJ: 'x -> Job<Choice<'y, 'e>>) : Job<Choice<'y, 'e>> =
-    bindVoidTask xT x2yJ 
+    bindTask xT x2yJ 
   member __.Bind (uT: Task, u2xJ: unit -> Job<Choice<'x, 'e>>) : Job<Choice<'x, 'e>> = 
-    bindTask uT u2xJ
+    bindVoidTask uT u2xJ
 
   member __.Combine (uA: Async<Choice<unit, 'e>>, xJ: Job<Choice<'x, 'e>>) : Job<Choice<'x, 'e>> =
     Async.toJob uA >>. xJ
