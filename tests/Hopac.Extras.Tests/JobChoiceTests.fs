@@ -55,6 +55,15 @@ let ``using``() =
   !disposed =? true
 
 [<Test>]
+let ``using if exception in subsequent code``() =
+  let disposed = ref false
+  jobChoice {
+    use! __ = Job.result (Ok { new IDisposable with member __.Dispose() = disposed := true })
+    failwith "error"
+  } |> Job.catch |> run |> ignore
+  !disposed =? true
+
+[<Test>]
 let ``for``() =
   let r = ref []
   jobChoice {
@@ -63,3 +72,62 @@ let ``for``() =
       r := !r @ [y]
   } |> run |> ignore
   !r =? [1..10]
+
+[<Test>]
+let ``while``() =
+  let r = ref 0
+  jobChoice {
+    while true do
+      do! if !r < 10 then JobChoice.result () else Job.result (Fail ()) 
+      incr r
+  } |> run |> ignore
+  !r =? 10
+
+[<Test>]
+let complex() =
+  jobChoice {
+    let! _ = jobChoice { return 1 }
+    let! _ = 
+      jobChoice { 
+        let! _ = JobChoice.result 1
+        return! Job.result (Fail 2)
+      }
+    return 3
+  } |> run =? Fail 2
+
+[<Test>]
+let zero() = run (jobChoice { () }) =? Ok ()
+
+[<Test>]
+let ``try with job``() =
+  jobChoice {
+    return
+      try 1
+      with _ -> 2
+  } |> run =? Ok 1  
+  
+  jobChoice {
+    return
+      try failwith "error"
+      with _ -> 2
+  } |> run =? Ok 2
+
+[<Test>]
+let ``try finally``() =
+  let x = ref false
+  jobChoice {
+    return
+      try 1
+      finally x := true
+  } |> run =? Ok 1
+  !x =? true
+
+[<Test>]
+let ``try finally, exception in try``() =
+  let x = ref false
+  jobChoice {
+    return
+      try failwith "error"
+      finally x := true
+  } |> Job.catch |> run |> ignore
+  !x =? true
