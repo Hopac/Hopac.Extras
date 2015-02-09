@@ -63,6 +63,7 @@
     <None Include="Scripts\load-project.fsx" />
     <None Include="Scripts\IO.fsx" />
     <None Include="Scripts\ParallelExecutor.fsx" />
+    <None Include="Scripts\JobChoice.fsx" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />

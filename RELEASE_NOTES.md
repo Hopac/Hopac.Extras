@@ -1,3 +1,6 @@
+#### 0.1.16 - 09.02.2015
+* Fix JobChoice and add tests for it
+
 #### 0.1.15 - 06.02.2015
 * Add JobChoice computation expression
 
