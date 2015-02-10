@@ -1,3 +1,6 @@
+#### 0.1.18 - 10.02.2015
+* Replace File.startReading implementation
+
 #### 0.1.17 - 10.02.2015
 * Add IO.Console
 
