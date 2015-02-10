@@ -135,3 +135,29 @@ module File =
         start (openStreamReader path >>=? openedStreamReader)
         { NewLine = newLine
           Close = IVar.tryFill close () }
+
+module Console = 
+  [<NoComparison>]
+  type Events =
+    { /// Becomes available when `Ctrl+C` is pressed.
+      Cancelled: Alt<unit>
+      /// Becames available when any key is pressed.
+      KeyPressed: Alt<ConsoleKey> }
+
+  /// Starts watching console in a separate job.
+  let watch() = Job.delay <| fun _ ->
+    let cancelled = ivar<unit>()
+    Console.CancelKeyPress.Add <| fun e -> start (IVar.tryFill cancelled () >>% e.Cancel <- true)
+    
+    let keyPressed = ch<ConsoleKey>()
+    let keyPressedAlt() = Alt.guard << Job.delay <| fun _ ->
+        if Console.KeyAvailable then
+          let key = Console.ReadKey()
+          keyPressed <-- key.Key >>% Alt.always()
+        else Job.result <| Alt.never()
+
+    let rec loop() = Job.delay <| fun _ ->
+      (timeOutMillis 200 >>.? loop()) <|>?
+      (cancelled >>%? ()) <|>?
+      (keyPressedAlt() >>.? loop())
+    Job.start (loop()) >>% { Cancelled = cancelled; KeyPressed = keyPressed }

@@ -1,3 +1,6 @@
+#### 0.1.17 - 10.02.2015
+* Add IO.Console
+
 #### 0.1.16 - 09.02.2015
 * Fix JobChoice and add tests for it
 
