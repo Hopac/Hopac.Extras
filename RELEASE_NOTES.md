@@ -1,3 +1,6 @@
+#### 0.1.19 - 11.02.2015
+* Update Hopac to version 0.0.0.41
+
 #### 0.1.18 - 10.02.2015
 * Replace File.startReading implementation
 

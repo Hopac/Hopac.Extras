@@ -1,11 +1,11 @@
 NUGET
   remote: https://nuget.org/api/v2
   specs:
-    FAKE (3.14.9)
+    FAKE (3.15.0)
     FsCheck (2.0.0)
       FSharp.Core (>= 3.1.2.1)
     FSharp.Core (3.1.2.1)
-    Hopac (0.0.0.40)
+    Hopac (0.0.0.41)
     Microsoft.Bcl (1.1.9)
       Microsoft.Bcl.Build (>= 1.0.14)
     Microsoft.Bcl.Build (1.0.21)
@@ -22,5 +22,5 @@ NUGET
 GITHUB
   remote: fsharp/FAKE
   specs:
-    modules/Octokit/Octokit.fsx (ddd071eeb73f5644a1f8edd9d870dc4a6c7a71a4)
+    modules/Octokit/Octokit.fsx (0d82fea265404d0339744fbe10617fb2737a0c87)
       Octokit
