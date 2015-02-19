@@ -34,3 +34,23 @@ run (exec())
 
 let i = ivar<unit>()
 run (IVar.tryFill i ())
+
+// File.startReading
+
+let file = @"l:\temp\test.txt"
+
+Job.usingAsync (File.startReading file) <| fun reader ->
+    let rec loop() = Job.delay <| fun _ ->
+        (reader.NewLine >>=? fun line -> 
+            printfn "new line: %s" line 
+            //if line = "5. -----" then 
+            //    printfn "found the line, stopping"
+            //    Job.unit()
+            //else 
+            loop()) <|>?
+        (Timer.Global.timeOutMillis 30000 >>=? fun _ ->
+            printfn "Timeout."
+            Job.unit())
+    loop()
+|>> fun _ -> printfn "Beyond the loop."
+|> start

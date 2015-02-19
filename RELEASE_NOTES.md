@@ -1,3 +1,6 @@
+#### 0.1.20 - 19.02.2015
+* Fixed: File.startReading does not react on new lines appeared in a file
+
 #### 0.1.19 - 11.02.2015
 * Update Hopac to version 0.0.0.41
 

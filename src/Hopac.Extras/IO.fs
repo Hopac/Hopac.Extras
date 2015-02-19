@@ -121,7 +121,8 @@ module File =
         let rec loop () =
           (readLineAlt reader |> memo >>=? fun line ->
             newLine <<-+ line >>= loop) <|>?
-          close
+          close <|>?
+          (timeOutMillis 500 >>=? fun _ -> loop())
         loop ()
 
     start (Job.tryInDelay openReader
