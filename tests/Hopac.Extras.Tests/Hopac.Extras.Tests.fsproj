@@ -59,6 +59,7 @@
     <Compile Include="JobChoiceTests.fs" />
     <Compile Include="ObjectPoolTests.fs" />
     <Compile Include="ParallelExecutorTests.fs" />
+    <Compile Include="FileTests.fs" />
     <None Include="paket.references" />
   </ItemGroup>
   <ItemGroup>
