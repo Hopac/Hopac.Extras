@@ -84,14 +84,14 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
         get() >>=? function
             | Ok entry ->
                Job.tryFinallyJob
-                   (Job.delay (fun _ -> f entry.Value) |>> Ok)
+                   (Job.tryInDelay (fun _ -> f entry.Value) (Ok >> Job.result) (Fail >> Job.result))
                    (releaseCh <-- entry)
             | Fail e -> Job.result (Fail e)
 
     interface IAsyncDisposable with
         member __.DisposeAsync() = IVar.tryFill doDispose () >>. hasDisposed
 
-    interface IDisposable with
+    interface IDisposable with 
         /// Runs disposing asynchronously. Does not wait until the disposing finishes. 
         member x.Dispose() = (x :> IAsyncDisposable).DisposeAsync() |> start
 

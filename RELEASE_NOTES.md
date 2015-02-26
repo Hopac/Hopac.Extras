@@ -1,3 +1,6 @@
+#### 0.1.22 - 26.02.2015
+* ObjectPool.WithInstanceJob cache exceptions and transform them to Choice
+
 #### 0.1.21 - 26.02.2015
 * ObjectPool handle instance creator exceptions
 
