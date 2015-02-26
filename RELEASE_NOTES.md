@@ -1,3 +1,6 @@
+#### 0.1.21 - 26.02.2015
+* ObjectPool handle instance creator exceptions
+
 #### 0.1.20 - 19.02.2015
 * Fixed: File.startReading does not react on new lines appeared in a file
 

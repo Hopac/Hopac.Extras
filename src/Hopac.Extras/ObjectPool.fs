@@ -26,7 +26,7 @@ type private PoolEntry<'a> =
 type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBeforeDispose: TimeSpan) =
     let capacity = defaultArg capacity 50u
     let inactiveTimeBeforeDispose = defaultArg inactiveTimeBeforeDispose (TimeSpan.FromMinutes 1.)
-    let reqCh = ch<Promise<unit> * 'a PoolEntry Ch>()
+    let reqCh = ch<Promise<unit> * Ch<Choice<PoolEntry<'a>, exn>>>()
     let releaseCh = ch<'a PoolEntry>()
     let maybeExpiredCh = ch<'a PoolEntry>()
     let doDispose = ivar()
@@ -45,10 +45,10 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
             reqCh >>=? fun (nack, replyCh) ->
                 let instance, available = 
                     match available with
-                    | [] -> PoolEntry.Create (createNew()), []
-                    | h :: t -> h, t
+                    | [] -> (try Ok (PoolEntry.Create (createNew())) with e -> Fail e), []
+                    | h :: t -> Ok h, t
                 (replyCh <-- instance >>.? loop (available, given + 1u)) <|>?
-                (nack >>.? loop (instance :: available, given))
+                (nack >>.? loop ((match instance with Ok x -> x :: available | Fail _ -> available), given))
         // an instance was inactive for too long
         let expiredAlt() =
             maybeExpiredCh >>=? fun instance ->
@@ -80,12 +80,14 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
 
     /// Applies a function, that returns a Job, on an instance from pool. Returns `Alt` to consume 
     /// the function result.
-    member __.WithInstanceJob (f: 'a -> #Job<'r>) : Alt<'r> =
-        get() >>=? fun entry -> 
-            Job.tryFinallyJob 
-                (Job.delay (fun _ -> f entry.Value)) 
-                (releaseCh <-- entry)
-             
+    member __.WithInstanceJob (f: 'a -> #Job<'r>) : Alt<Choice<'r, exn>> =
+        get() >>=? function
+            | Ok entry ->
+               Job.tryFinallyJob
+                   (Job.delay (fun _ -> f entry.Value) |>> Ok)
+                   (releaseCh <-- entry)
+            | Fail e -> Job.result (Fail e)
+
     interface IAsyncDisposable with
         member __.DisposeAsync() = IVar.tryFill doDispose () >>. hasDisposed
 
@@ -97,7 +99,7 @@ type ObjectPool with
     /// Applies a function on an instance from pool. Returns the function result.
     member x.WithInstance f = x.WithInstanceJob (fun a -> Job.result (f a))
     /// Returns an Async that applies a function on an instance from pool and returns the function result.
-    member x.WithInstanceAsync f = async { run (x.WithInstance f) }
+    member x.WithInstanceAsync f = async { return run (x.WithInstance f) }
     /// Applies a function on an instance from pool, synchronously, in the thread in which it's called.
     /// Warning! Can deadlock being called from application main thread.
     member x.WithInstanceSync f = x.WithInstance f |> run
