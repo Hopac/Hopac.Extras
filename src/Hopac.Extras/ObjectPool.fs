@@ -80,13 +80,17 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
 
     /// Applies a function, that returns a Job, on an instance from pool. Returns `Alt` to consume 
     /// the function result.
-    member __.WithInstanceJob (f: 'a -> #Job<'r>) : Alt<Choice<'r, exn>> =
+    member __.WithInstanceJobChoice (f: 'a -> #Job<Choice<'r, exn>>) : Alt<Choice<'r, exn>> =
         get() >>=? function
             | Ok entry ->
                Job.tryFinallyJob
-                   (Job.tryInDelay (fun _ -> f entry.Value) (Ok >> Job.result) (Fail >> Job.result))
+                   (Job.delay (fun _ -> f entry.Value))
                    (releaseCh <-- entry)
             | Fail e -> Job.result (Fail e)
+
+    /// Applies a function, that returns a Job, on an instance from pool. Returns `Alt` to consume 
+    /// the function result.
+    member x.WithInstanceJob (f: 'a -> #Job<'r>) : Alt<Choice<'r, exn>> = x.WithInstanceJobChoice (f >> Job.catch)
 
     interface IAsyncDisposable with
         member __.DisposeAsync() = IVar.tryFill doDispose () >>. hasDisposed
