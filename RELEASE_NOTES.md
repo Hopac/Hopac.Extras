@@ -1,3 +1,6 @@
+#### 0.1.24 - 27.02.2015
+* Update Hopac to version 0.0.0.42
+
 #### 0.1.23 - 26.02.2015
 * Add ObjectPool.WithInstanceJobChoice
 

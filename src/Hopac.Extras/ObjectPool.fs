@@ -74,7 +74,7 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
     
     do start (loop ([], 0u)) 
      
-    let get() = Alt.withNack <| fun nack ->
+    let get() = Alt.withNackJob <| fun nack ->
         let replyCh = ch()
         reqCh <-+ (nack, replyCh) >>% replyCh
 
