@@ -144,16 +144,14 @@ module Console =
   let watch() = Job.delay <| fun _ ->
     let cancelled = ivar<unit>()
     Console.CancelKeyPress.Add <| fun e -> start (IVar.tryFill cancelled () >>% e.Cancel <- true)
-    
     let keyPressed = ch<ConsoleKey>()
-    let keyPressedAlt() = Alt.guard << Job.delay <| fun _ ->
-        if Console.KeyAvailable then
-          let key = Console.ReadKey()
-          keyPressed <-- key.Key >>% Alt.always()
-        else Job.result <| Alt.never()
 
-    let rec loop() = Job.delay <| fun _ ->
-      (timeOutMillis 200 >>.? loop()) <|>?
-      (cancelled >>%? ()) <|>?
-      (keyPressedAlt() >>.? loop())
+    let rec loop () =
+        if Console.KeyAvailable then
+            let key = Console.ReadKey ()
+            keyPressed <-+ key.Key >>= loop
+        else
+            (timeOutMillis 200 >>=? loop) <|>?
+            (cancelled) :> Job<_>
+
     Job.start (loop()) >>% { Cancelled = cancelled; KeyPressed = keyPressed }
