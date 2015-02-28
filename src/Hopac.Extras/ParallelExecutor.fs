@@ -55,4 +55,4 @@ type ParallelExecutor<'msg, 'error>
             setDegreeAlt() <|>? workDoneAlt()
     do start pool
     /// Sets new degree of parallelism.
-    member __.SetDegree value = setDegree <-+ value |> run
+    member __.SetDegree value = setDegree <-+ value |> start

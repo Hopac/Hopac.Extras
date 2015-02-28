@@ -4,6 +4,7 @@ open Hopac
 open Hopac.Infixes
 open Hopac.Job.Infixes
 open Hopac.Alt.Infixes
+open Hopac.Extensions
 open System
 
 type private PoolEntry<'a> = 
@@ -103,7 +104,7 @@ type ObjectPool with
     /// Applies a function on an instance from pool. Returns the function result.
     member x.WithInstance f = x.WithInstanceJob (fun a -> Job.result (f a))
     /// Returns an Async that applies a function on an instance from pool and returns the function result.
-    member x.WithInstanceAsync f = async { return run (x.WithInstance f) }
+    member x.WithInstanceAsync f = x.WithInstance f |> Async.Global.ofJob
     /// Applies a function on an instance from pool, synchronously, in the thread in which it's called.
     /// Warning! Can deadlock being called from application main thread.
     member x.WithInstanceSync f = x.WithInstance f |> run
