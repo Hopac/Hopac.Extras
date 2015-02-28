@@ -3,7 +3,7 @@ NUGET
   specs:
     FAKE (3.17.13)
     FsCheck (1.0.4)
-    Hopac (0.0.0.42)
+    Hopac (0.0.0.43)
     Microsoft.Bcl (1.1.10)
       Microsoft.Bcl.Build (>= 1.0.14)
     Microsoft.Bcl.Build (1.0.21)
