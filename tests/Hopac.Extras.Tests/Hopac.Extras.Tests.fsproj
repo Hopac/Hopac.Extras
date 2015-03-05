@@ -56,6 +56,7 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Content Include="App.config" />
+    <Compile Include="SynchronizationTests.fs" />
     <Compile Include="JobChoiceTests.fs" />
     <Compile Include="ObjectPoolTests.fs" />
     <Compile Include="ParallelExecutorTests.fs" />
