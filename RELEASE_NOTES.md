@@ -1,3 +1,6 @@
+#### 0.1.28 - 10.04.2015
+* Update Hopac to version 0.0.0.45
+
 #### 0.1.27 - 05.03.2015
 * Add Semaphore
 

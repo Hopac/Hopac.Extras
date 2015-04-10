@@ -1,0 +1,12 @@
+﻿<Properties StartupItem="src\Hopac.Extras\Hopac.Extras.fsproj">
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="src\Hopac.Extras\Utils.fs">
+    <Files>
+      <File FileName="src\Hopac.Extras\Utils.fs" Line="11" Column="27" />
+    </Files>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+</Properties>
