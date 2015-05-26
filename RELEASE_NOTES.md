@@ -1,3 +1,6 @@
+#### 0.1.30 - 26.05.2014
+* fixed: ObjectPool stop responding if `creator` raises exception `capacity` number of times
+
 #### 0.1.29 - 26.05.2015
 * Update Hopac to version 0.0.0.46
 
