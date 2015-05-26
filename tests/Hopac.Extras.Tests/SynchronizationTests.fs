@@ -5,7 +5,6 @@ open Hopac.Extras
 open Hopac
 open Hopac.Infixes
 open Hopac.Alt.Infixes
-open Hopac.Job.Infixes
 
 [<Test; Timeout (5000)>]
 let ``Wait blocks if semaphor is full``() =

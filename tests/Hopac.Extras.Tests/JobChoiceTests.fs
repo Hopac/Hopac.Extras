@@ -2,7 +2,6 @@
 
 open System
 open Hopac
-open Hopac.Infixes
 open Hopac.Job.Infixes
 open Hopac.Extras
 open FsCheck
@@ -52,7 +51,7 @@ let ``using``() =
     use! __ = Job.result (Ok { new IDisposable with member __.Dispose() = disposed := true })
     return ()
   } |> run |> ignore
-  !disposed =? true
+  !disposed =! true
 
 [<Test>]
 let ``using if exception in subsequent code``() =
@@ -61,7 +60,7 @@ let ``using if exception in subsequent code``() =
     use! __ = Job.result (Ok { new IDisposable with member __.Dispose() = disposed := true })
     failwith "error"
   } |> Job.catch |> run |> ignore
-  !disposed =? true
+  !disposed =! true
 
 [<Test>]
 let ``for``() =
@@ -71,7 +70,7 @@ let ``for``() =
       let! y = if x <= 10 then JobChoice.result x else Job.result (Fail ())
       r := !r @ [y]
   } |> run |> ignore
-  !r =? [1..10]
+  !r =! [1..10]
 
 [<Test>]
 let ``while``() =
@@ -81,7 +80,7 @@ let ``while``() =
       do! if !r < 10 then JobChoice.result () else Job.result (Fail ()) 
       incr r
   } |> run |> ignore
-  !r =? 10
+  !r =! 10
 
 [<Test>]
 let complex() =
@@ -93,10 +92,10 @@ let complex() =
         return! Job.result (Fail 2)
       }
     return 3
-  } |> run =? Fail 2
+  } |> run =! Fail 2
 
 [<Test>]
-let zero() = run (jobChoice { () }) =? Ok ()
+let zero() = run (jobChoice { () }) =! Ok ()
 
 [<Test>]
 let ``try with job``() =
@@ -104,13 +103,13 @@ let ``try with job``() =
     return
       try 1
       with _ -> 2
-  } |> run =? Ok 1  
+  } |> run =! Ok 1  
   
   jobChoice {
     return
       try failwith "error"
       with _ -> 2
-  } |> run =? Ok 2
+  } |> run =! Ok 2
 
 [<Test>]
 let ``try finally``() =
@@ -119,8 +118,8 @@ let ``try finally``() =
     return
       try 1
       finally x := true
-  } |> run =? Ok 1
-  !x =? true
+  } |> run =! Ok 1
+  !x =! true
 
 [<Test>]
 let ``try finally, exception in try``() =
@@ -130,4 +129,4 @@ let ``try finally, exception in try``() =
       try failwith "error"
       finally x := true
   } |> Job.catch |> run |> ignore
-  !x =? true
+  !x =! true

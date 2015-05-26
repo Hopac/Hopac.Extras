@@ -68,8 +68,8 @@ let ``reuse single instance``() =
     startIgnore <| pool.WithInstanceJob (fun x -> c <-- x)
     let instance = takeOrThrow c
     startIgnore <| pool.WithInstanceJob (fun x -> c <-- x)
-    takeOrThrow c =? instance 
-    List.length <| creator.CreatedInstances() =? 1
+    takeOrThrow c =! instance 
+    List.length <| creator.CreatedInstances() =! 1
 
 [<Test; Timeout(timeout)>]
 let ``blocks if there is no available instance``() = 
@@ -125,11 +125,11 @@ let ``dispose all instances when pool is disposing``() =
                 s, c)
         // ensure all jobs started and wait on "c" channels
         cs |> List.map fst |> Job.conIgnore |> run
-        creator.CreatedInstances() |> List.map (fun e -> e.Disposed) =? List.init 5 (fun _ -> false)
+        creator.CreatedInstances() |> List.map (fun e -> e.Disposed) =! List.init 5 (fun _ -> false)
         // unblock all jobs
         cs |> List.map snd |> Job.conIgnore
     |> run
-    creator.CreatedInstances() |> List.map (fun e -> e.Disposed) =? List.init 5 (fun _ -> true)
+    creator.CreatedInstances() |> List.map (fun e -> e.Disposed) =! List.init 5 (fun _ -> true)
 
 [<Test; Timeout(timeout)>]
 let ``instance is disposed and removed from pool after it's been unused for certain time``() =
@@ -140,10 +140,10 @@ let ``instance is disposed and removed from pool after it's been unused for cert
     run <| pool.WithInstanceJob (fun _ -> Job.unit()) |> ignore
     // check the instance is not disposed yet
     let instance = creator.CreatedInstances() |> List.head
-    instance.Disposed =? false
+    instance.Disposed =! false
     // wait while the instance is considered obsolete 
     Thread.Sleep (int inactiveTime.TotalMilliseconds * 2)
-    instance.Disposed =? true
+    instance.Disposed =! true
 
 [<Test; Timeout(timeout)>]
 let ``it's ok if instance throws exception in Dispose``() =
@@ -154,9 +154,9 @@ let ``it's ok if instance throws exception in Dispose``() =
     run <| pool.WithInstanceJob (fun _ -> Job.unit()) |> ignore
     let instance = creator.CreatedInstances() |> List.head
     Thread.Sleep (int inactiveTime.TotalMilliseconds * 2)
-    instance.Disposed =? true
+    instance.Disposed =! true
     // check that the pool is still working ok
-    run <| pool.WithInstanceJob (fun _ -> Job.result 1) =? Ok 1
+    run <| pool.WithInstanceJob (fun _ -> Job.result 1) =! Ok 1
     
 [<Test; Timeout(timeout)>]
 let ``instance is not disposed and is not removed from pool if it's reused before it becomes obsolete``() =
@@ -167,13 +167,13 @@ let ``instance is not disposed and is not removed from pool if it's reused befor
     run <| pool.WithInstanceJob (fun _ -> Job.unit()) |> ignore
     let instance = creator.CreatedInstances() |> List.head 
     // check that the instance is not disposed yet
-    instance.Disposed =? false
+    instance.Disposed =! false
     // reuse the instance each 100 ms for total time that is longer than "inactiveTime"
     for _ in 1..10 do
         Thread.Sleep (TimeSpan.FromMilliseconds 100.)
         run <| pool.WithInstanceJob (fun _ -> Job.unit()) |> ignore
     // check that the instance is still alive
-    instance.Disposed =? false
+    instance.Disposed =! false
 
 [<Test; Timeout(timeout)>]
 let ``returns instance to the pool even though job creation function raises exception``() = 
@@ -183,7 +183,7 @@ let ``returns instance to the pool even though job creation function raises exce
     let c = ch()
     startIgnore <| pool.WithInstanceJob (fun x -> c <-- x)
     takeOrThrow c |> ignore
-    List.length <| creator.CreatedInstances() =? 1
+    List.length <| creator.CreatedInstances() =! 1
 
 [<Test; Timeout(timeout)>]
 let ``returns instance to the pool even though the job raises exception``() = 
@@ -193,7 +193,7 @@ let ``returns instance to the pool even though the job raises exception``() =
     let c = ch()
     startIgnore <| pool.WithInstanceJob (fun x -> c <-- x)
     takeOrThrow c |> ignore
-    List.length <| creator.CreatedInstances() =? 1
+    List.length <| creator.CreatedInstances() =! 1
 
 [<Test; Timeout(timeout)>]
 let ``returns Fail if creator raise exception``() = 

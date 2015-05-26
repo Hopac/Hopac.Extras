@@ -3,11 +3,9 @@
 open Hopac
 open Hopac.Infixes
 open Hopac.Job.Infixes
-open Hopac.Alt.Infixes
 open Hopac.Extras
 open NUnit.Framework
 open FsCheck
-open System
 open FsCheck.Prop
 
 [<Test; Timeout(5000)>]

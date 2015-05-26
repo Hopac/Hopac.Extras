@@ -2,9 +2,7 @@
 
 open NUnit.Framework
 open Hopac
-open Hopac.Infixes
 open Hopac.Job.Infixes
-open Hopac.Alt.Infixes
 open Hopac.Extras
 open System
 open System.IO
@@ -27,11 +25,11 @@ let ``Signals about existing, then appended lines``() =
     Job.usingAsync (File.startReading fileName) <| fun reader -> 
         job {
             let! existingLines = reader.NewLine <&> reader.NewLine <&> reader.NewLine
-            existingLines =? (("1", "2"), "3")
+            existingLines =! (("1", "2"), "3")
             do! timeOutMillis 1000
             writeToFile file [4..5]
             let! appendedLines = reader.NewLine <&> reader.NewLine
-            appendedLines =? ("4", "5")
+            appendedLines =! ("4", "5")
         }
     |> run
 
@@ -43,7 +41,7 @@ let ``It's ok to start reading a file before it's created``() =
             use file = newFile fileName
             writeToFile file [1..2]
             let! existingLines = reader.NewLine <&> reader.NewLine
-            existingLines =? ("1", "2")
+            existingLines =! ("1", "2")
             file.Dispose()
         }
     |> run
