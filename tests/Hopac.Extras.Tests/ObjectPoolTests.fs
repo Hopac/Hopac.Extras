@@ -13,11 +13,13 @@ open Hopac.Extras
 open FsCheck.Prop
 
 let private takeOrThrow ch = 
-    ch <|>? (timeOutMillis 10000 |>>? fun _ -> failwith "timeout") |> run 
+    (ch <|> timeOutMillis 10000 ^-> fun _ -> failwith "timeout") |> run 
 
 let private timeoutOrThrow timeout alt = 
-    (timeOutMillis timeout |>>? fun _ -> ()) <|>?
-    (alt |>>? fun x -> failwithf "Expected timeout but was %A" x) |> run
+    timeOutMillis timeout ^-> fun _ -> () 
+    <|>
+    alt ^-> fun x -> failwithf "Expected timeout but was %A" x
+    |> run
 
 type private Entry = 
     { Value: int
@@ -36,7 +38,7 @@ type private Creator =
 // Investigate it (for learning purposes).
 
 //let creator() = 
-//    let createNewCh, getInstanceCountCh = ch(), ch()
+//    let createNewCh, getInstanceCountCh = Ch(), Ch()
 //    run (Job.iterateServer [||] <| fun instances ->
 //        (Alt.delay <| fun _ ->
 //            let newInstance = { Value = instances.Length; Disposed = false }
@@ -64,23 +66,23 @@ let private timeout = 10000
 let ``reuse single instance``() = 
     let creator = creator()
     let pool = new ObjectPool<_>(creator.NewInstance, 1u)
-    let c = ch()
-    startIgnore <| pool.WithInstanceJob (fun x -> c <-- x)
+    let c = Ch()
+    startIgnore <| pool.WithInstanceJob (fun x -> c *<- x)
     let instance = takeOrThrow c
-    startIgnore <| pool.WithInstanceJob (fun x -> c <-- x)
+    startIgnore <| pool.WithInstanceJob (fun x -> c *<- x)
     takeOrThrow c =! instance 
-    List.length <| creator.CreatedInstances() =! 1
+    creator.CreatedInstances().Length =! 1
 
 [<Test; Timeout(timeout)>]
 let ``blocks if there is no available instance``() = 
     let creator = creator()
     let pool = new ObjectPool<_>(creator.NewInstance, 1u)
     // take an instance and block it forever
-    let c1 = ch()
-    startIgnore <| pool.WithInstanceJob (fun _ -> c1 <-- ())
+    let c1 = Ch()
+    startIgnore <| pool.WithInstanceJob (fun _ -> c1 *<- ())
     // try to get the instance and block
-    let c2 = ch()
-    startIgnore <| pool.WithInstanceJob (fun _ -> c2 <-- ())
+    let c2 = Ch()
+    startIgnore <| pool.WithInstanceJob (fun _ -> c2 *<- ())
     timeoutOrThrow 1000 c2
 
 [<Test; Timeout(timeout)>]
@@ -88,11 +90,11 @@ let ``unblocks when an instance becomes available``() =
     let creator = creator()
     let pool = new ObjectPool<_>(creator.NewInstance, 1u)
     // take an instance and block until the value is not taken from c1
-    let c1 = ch()
-    startIgnore <| pool.WithInstanceJob (fun _ -> c1 <-- ())
+    let c1 = Ch()
+    startIgnore <| pool.WithInstanceJob (fun _ -> c1 *<- ())
     // try to get the instance and block
-    let c2 = ch()
-    startIgnore <| pool.WithInstanceJob (fun _ -> c2 <-- ())
+    let c2 = Ch()
+    startIgnore <| pool.WithInstanceJob (fun _ -> c2 *<- ())
     timeoutOrThrow 1000 c2
     // release the instance
     run c1
@@ -104,13 +106,13 @@ let ``does not deadlock if client quickly chooses another alternative``() =
     let creator = creator()
     let pool = new ObjectPool<_>(creator.NewInstance, 1u)
     // take an instance and block until the value is not taken from c
-    let c = ch()
-    startIgnore <| pool.WithInstanceJob (fun _ -> c <-- ())
+    let c = Ch()
+    startIgnore <| pool.WithInstanceJob (fun _ -> c *<- ())
     // try to get the instance or "always"
-    run (pool.WithInstanceJob (fun _ -> Job.unit()) <|>? Alt.always (Ok())) |> ignore
+    run (pool.WithInstanceJob (fun _ -> Job.unit()) <|> Alt.always (Ok())) |> ignore
     run c
     // check whether the pool has not deadlocked
-    startIgnore <| pool.WithInstanceJob (fun _ -> c <-- ())
+    startIgnore <| pool.WithInstanceJob (fun _ -> c *<- ())
     takeOrThrow c
 
 [<Test; Timeout(timeout)>]
@@ -120,7 +122,7 @@ let ``dispose all instances when pool is disposing``() =
         let cs =
             [1..5]
             |> List.map (fun _ ->
-                let s, c = ch(), ch()
+                let s, c = Ch(), Ch()
                 startIgnore <| pool.WithInstanceJob (fun _ -> Ch.give s () >>. Ch.give c ())
                 s, c)
         // ensure all jobs started and wait on "c" channels
@@ -180,8 +182,8 @@ let ``returns instance to the pool even though job creation function raises exce
     let creator = creator()
     let pool = new ObjectPool<_>(creator.NewInstance, 1u)
     try run <| pool.WithInstanceJob (fun _ -> failwith "error") |> ignore with _ -> () 
-    let c = ch()
-    startIgnore <| pool.WithInstanceJob (fun x -> c <-- x)
+    let c = Ch()
+    startIgnore <| pool.WithInstanceJob (fun x -> c *<- x)
     takeOrThrow c |> ignore
     List.length <| creator.CreatedInstances() =! 1
 
@@ -190,8 +192,8 @@ let ``returns instance to the pool even though the job raises exception``() =
     let creator = creator()
     let pool = new ObjectPool<_>(creator.NewInstance, 1u)
     try run <| pool.WithInstanceJob (fun _ -> Job.delay <| fun _ -> failwith "error") |> ignore with _ -> ()
-    let c = ch()
-    startIgnore <| pool.WithInstanceJob (fun x -> c <-- x)
+    let c = Ch()
+    startIgnore <| pool.WithInstanceJob (fun x -> c *<- x)
     takeOrThrow c |> ignore
     List.length <| creator.CreatedInstances() =! 1
 

@@ -25,34 +25,34 @@ type ParallelExecutor<'msg, 'error>
         worker: 'msg -> Job<Choice<unit, WorkerError<'error>>>,
         ?completed: Mailbox<'msg * Choice<unit, WorkerError<'error>>>
     ) =
-    let setDegree = ch<uint16>() 
-    let workDone = ch<Choice<unit, WorkerError<_>>>()
-    let failedMessages = mb()
-     
+    let setDegree = Ch<uint16>() 
+    let workDone = Ch<Choice<unit, WorkerError<_>>>()
+    let failedMessages = Mailbox()     
+
     let pool = Job.iterateServer (degree, 0u)  <| fun (degree, usage) ->
-        let setDegreeAlt() = setDegree |>>? fun degree -> degree, usage
-        let workDoneAlt() = workDone |>>? fun _ -> degree, usage - 1u
+        let setDegreeAlt() = setDegree ^-> fun degree -> degree, usage
+        let workDoneAlt() = workDone ^-> fun _ -> degree, usage - 1u
 
         let processMessageAlt() =
-            source <~>? failedMessages >>=? fun msg ->
+            (source <~> failedMessages) ^=> fun msg ->
                 job {
                     let! result = worker msg
                     return!
                         (match result with
-                         | Fail (Recoverable _) -> failedMessages <<-+ msg
+                         | Fail (Recoverable _) -> failedMessages *<<+ msg
                          | Fail (Fatal _)
                          | Ok ->
                              match completed with
-                             | Some mb -> mb <<-+ (msg, result)
+                             | Some mb -> mb *<<+ (msg, result)
                              | None -> Job.unit())
-                        >>. (workDone <-- result) }
+                        >>. (workDone *<- result) }
                 |> Job.queue
             >>% (degree, usage + 1u)
 
         if usage < uint32 degree then
-            setDegreeAlt() <|>? workDoneAlt() <|>? processMessageAlt()
+            setDegreeAlt() <|> workDoneAlt() <|> processMessageAlt()
         else 
-            setDegreeAlt() <|>? workDoneAlt()
+            setDegreeAlt() <|> workDoneAlt()
     do start pool
     /// Sets new degree of parallelism.
-    member __.SetDegree value = setDegree <-+ value |> start
+    member __.SetDegree value = setDegree *<+ value |> start

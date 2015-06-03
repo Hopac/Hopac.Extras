@@ -8,13 +8,13 @@ open Hopac.Job.Infixes
 [<Sealed>]
 type Semaphore(n: int) = 
     do assert (0 <= n)
-    let inc = ch()
-    let dec = ch()
+    let inc = Ch()
+    let dec = Ch()
     do server << Job.iterate n <| fun n -> 
-       if 0 < n then (dec >>%? n - 1) <|>? (inc >>%? n + 1)
-       else (inc >>%? n + 1)
-    member this.Release = inc <-- ()
-    member this.Wait = dec <-- ()
+       if 0 < n then dec ^->. n - 1 <|> inc ^->. n + 1
+       else (inc ^->. n + 1)
+    member this.Release = inc *<- ()
+    member this.Wait = dec *<- ()
 
 [<CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module Semaphore =

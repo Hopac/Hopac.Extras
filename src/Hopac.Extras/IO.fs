@@ -62,15 +62,15 @@ module ProcessRunner =
 
   /// Starts given Process asynchronously and returns RunningProcess instance.
   let startProcess (p: Process) : RunningProcess =
-    let lineOutput = mb()
-    let processExited = ivar()
+    let lineOutput = Mailbox()
+    let processExited = IVar()
 
     // Subscribe for two events and use 'start' to execute a single message passing operation 
     // which guarantees that the operations can be/are observed in the order in which the events are triggered.
     // (If we would use queue the lines could be sent to the mailbox in some non-deterministic order.)
     p.OutputDataReceived.Add (fun args ->
       if args.Data <> null then 
-        lineOutput <<-+ args.Data |> start)
+        lineOutput *<<+ args.Data |> start)
     
     p.Exited.Add (fun _ -> 
       let exitCode = getExitCodeSafe p
@@ -103,33 +103,34 @@ module File =
   /// It's safe to call when file does not exist yet. When the file is created, 
   // this function opens it and starts reading.
   let startReading (path: string) : FileReader =
-    let newLine = mb()
-    let close = ivar()
-    let error = ivar()
+    let newLine = Mailbox()
+    let close = IVar()
+    let error = IVar()
 
     let rec openReader () =
-      let readLineAlt (file: StreamReader) : Alt<string> = Alt.delay <| fun _ -> 
+      let readLineAlt (file: StreamReader) : Alt<string> = Alt.prepareFun <| fun _ -> 
         if file.EndOfStream then Alt.never()
         else file.ReadLineAsync() |> Task.awaitJob |> memo :> _
       
       if not (File.Exists path) then
-        timeOutMillis 500 >>=? openReader <|>?
+        timeOutMillis 500 ^=> openReader <|>
         close :> Job<_>
       else
         Job.using <| new FileStream (path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite) <| fun file ->
         Job.using <| new StreamReader (file) <| fun reader ->
         let rec loop () =
-          (readLineAlt reader |> memo >>=? fun line ->
-            newLine <<-+ line >>= loop) <|>?
-          close <|>?
-          (timeOutMillis 500 >>=? fun _ -> loop())
+          (readLineAlt reader |> memo) ^=> fun line -> newLine *<<+ line >>= loop 
+          <|>
+          close 
+          <|>
+          timeOutMillis 500 ^=> fun _ -> loop()
         loop ()
 
     start (Job.tryInDelay openReader
             <| Job.unit
             <| IVar.fillFailure error)
 
-    { NewLine = newLine <|>? error
+    { NewLine = newLine <|> error
       Close = IVar.tryFill close () }
 
 module Console = 
@@ -142,16 +143,17 @@ module Console =
 
   /// Starts watching console in a separate job.
   let watch() = Job.delay <| fun _ ->
-    let cancelled = ivar<unit>()
+    let cancelled = IVar<unit>()
     Console.CancelKeyPress.Add <| fun e -> start (IVar.tryFill cancelled () >>% e.Cancel <- true)
-    let keyPressed = ch<ConsoleKey>()
+    let keyPressed = Ch<ConsoleKey>()
 
     let rec loop () =
         if Console.KeyAvailable then
             let key = Console.ReadKey ()
-            keyPressed <-+ key.Key >>= loop
+            keyPressed *<+ key.Key >>= loop
         else
-            (timeOutMillis 200 >>=? loop) <|>?
-            (cancelled) :> Job<_>
+            timeOutMillis 200 ^=> loop 
+            <|>
+            cancelled :> Job<_>
 
     Job.start (loop()) >>% { Cancelled = cancelled; KeyPressed = keyPressed }

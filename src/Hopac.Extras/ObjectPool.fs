@@ -27,32 +27,33 @@ type private PoolEntry<'a> =
 type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBeforeDispose: TimeSpan) =
     let capacity = defaultArg capacity 50u
     let inactiveTimeBeforeDispose = defaultArg inactiveTimeBeforeDispose (TimeSpan.FromMinutes 1.)
-    let reqCh = ch<Promise<unit> * Ch<Choice<PoolEntry<'a>, exn>>>()
-    let releaseCh = ch<'a PoolEntry>()
-    let maybeExpiredCh = ch<'a PoolEntry>()
-    let doDispose = ivar()
-    let hasDisposed = ivar()
+    let reqCh = Ch<Promise<unit> * Ch<Choice<PoolEntry<'a>, exn>>>()
+    let releaseCh = Ch<'a PoolEntry>()
+    let maybeExpiredCh = Ch<'a PoolEntry>()
+    let doDispose = IVar()
+    let hasDisposed = IVar()
     
     let rec loop (available: 'a PoolEntry list, given: uint32) = Job.delay <| fun _ ->
         // an instance returns to pool
         let releaseAlt() =
-            releaseCh >>=? fun instance ->
+            releaseCh ^=> fun instance ->
                 instance.LastUsed <- DateTime.UtcNow
                 Job.start (timeOut inactiveTimeBeforeDispose >>.
-                           (maybeExpiredCh <-+ instance)) >>.
+                           (maybeExpiredCh *<+ instance)) >>.
                 loop (instance :: available, given - 1u)
         // request for an instance
         let reqAlt() =
-            reqCh >>=? fun (nack, replyCh) ->
+            reqCh ^=> fun (nack, replyCh) ->
                 let instance, available = 
                     match available with
                     | [] -> (try Ok (PoolEntry.Create (createNew())) with e -> Fail e), []
                     | h :: t -> Ok h, t
-                (replyCh <-- instance >>.? loop (available, match instance with Ok _ -> given + 1u | _ -> given)) <|>?
-                (nack >>.? loop ((match instance with Ok x -> x :: available | Fail _ -> available), given))
+                replyCh *<- instance ^=>. loop (available, match instance with Ok _ -> given + 1u | _ -> given)
+                <|>
+                nack ^=>. loop ((match instance with Ok x -> x :: available | Fail _ -> available), given)
         // an instance was inactive for too long
         let expiredAlt() =
-            maybeExpiredCh >>=? fun instance ->
+            maybeExpiredCh ^=> fun instance ->
                 if DateTime.UtcNow - instance.LastUsed > inactiveTimeBeforeDispose 
                    && List.exists (fun x -> obj.ReferenceEquals(x, instance)) available then
                     dispose instance
@@ -61,32 +62,32 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
 
         // the entire pool is disposing
         let disposeAlt() = 
-            doDispose >>=? fun _ ->
+            doDispose ^=> fun _ ->
                 // dispose all instances that are in pool
                 available |> List.iter dispose
                 // wait until all given instances are returns to pool and disposing them on the way
-                Job.forN (int given) (releaseCh |>> dispose) >>. (hasDisposed <-= ())
+                Job.forN (int given) (releaseCh |>> dispose) >>. hasDisposed *<= ()
 
         if given < capacity then
             // if number of given objects has not reached the capacity, synchronize on request channel as well
-            releaseAlt() <|>? expiredAlt() <|>? disposeAlt() <|>? reqAlt()
+            releaseAlt() <|> expiredAlt() <|> disposeAlt() <|> reqAlt()
         else
-            releaseAlt() <|>? expiredAlt() <|>? disposeAlt()
+            releaseAlt() <|> expiredAlt() <|> disposeAlt()
     
     do start (loop ([], 0u)) 
      
     let get() = Alt.withNackJob <| fun nack ->
-        let replyCh = ch()
-        reqCh <-+ (nack, replyCh) >>% replyCh
+        let replyCh = Ch()
+        reqCh *<+ (nack, replyCh) >>% replyCh
 
     /// Applies a function, that returns a Job, on an instance from pool. Returns `Alt` to consume 
     /// the function result.
     member __.WithInstanceJobChoice (f: 'a -> #Job<Choice<'r, exn>>) : Alt<Choice<'r, exn>> =
-        get() >>=? function
+        get() ^=> function
             | Ok entry ->
                Job.tryFinallyJob
                    (Job.delay (fun _ -> f entry.Value))
-                   (releaseCh <-- entry)
+                   (releaseCh *<- entry)
             | Fail e -> Job.result (Fail e)
 
     /// Applies a function, that returns a Job, on an instance from pool. Returns `Alt` to consume 
