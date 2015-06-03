@@ -38,14 +38,14 @@ type ParallelExecutor<'msg, 'error>
                 job {
                     let! result = worker msg
                     return!
-                        (match result with
-                         | Fail (Recoverable _) -> failedMessages *<<+ msg
-                         | Fail (Fatal _)
-                         | Ok ->
-                             match completed with
-                             | Some mb -> mb *<<+ (msg, result)
-                             | None -> Job.unit())
-                        >>. (workDone *<- result) }
+                        match result with
+                        | Fail (Recoverable _) -> failedMessages *<<+ msg
+                        | Fail (Fatal _)
+                        | Ok ->
+                            match completed with
+                            | Some mb -> mb *<<+ (msg, result)
+                            | None -> Job.unit()
+                        >>. workDone *<- result }
                 |> Job.queue
             >>% (degree, usage + 1u)
 

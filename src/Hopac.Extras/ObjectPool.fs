@@ -43,14 +43,14 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
                 loop (instance :: available, given - 1u)
         // request for an instance
         let reqAlt() =
-            reqCh ^=> fun (nack, replyCh) ->
-                let instance, available = 
-                    match available with
-                    | [] -> (try Ok (PoolEntry.Create (createNew())) with e -> Fail e), []
-                    | h :: t -> Ok h, t
-                replyCh *<- instance ^=>. loop (available, match instance with Ok _ -> given + 1u | _ -> given)
-                <|>
-                nack ^=>. loop ((match instance with Ok x -> x :: available | Fail _ -> available), given)
+             reqCh ^=> fun (nack, replyCh) ->
+                let ok available instance =
+                    replyCh *<- Ok instance ^=>. loop (available, given + 1u) <|>
+                    nack ^=>. loop (instance :: available, given)
+                match available with
+                | instance :: available -> ok available instance
+                | [] -> try createNew () |> PoolEntry.Create |> ok available
+                        with e -> (replyCh *<- Fail e <|> nack) ^=>. loop (available, given)
         // an instance was inactive for too long
         let expiredAlt() =
             maybeExpiredCh ^=> fun instance ->
@@ -85,9 +85,9 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
     member __.WithInstanceJobChoice (f: 'a -> #Job<Choice<'r, exn>>) : Alt<Choice<'r, exn>> =
         get() ^=> function
             | Ok entry ->
-               Job.tryFinallyJob
-                   (Job.delay (fun _ -> f entry.Value))
-                   (releaseCh *<- entry)
+               Job.tryFinallyJobDelay
+                   <| fun _ -> f entry.Value
+                   <| releaseCh *<- entry
             | Fail e -> Job.result (Fail e)
 
     /// Applies a function, that returns a Job, on an instance from pool. Returns `Alt` to consume 

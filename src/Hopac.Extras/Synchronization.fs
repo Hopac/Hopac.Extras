@@ -11,10 +11,11 @@ type Semaphore(n: int) =
     let inc = Ch()
     let dec = Ch()
     do server << Job.iterate n <| fun n -> 
-       if 0 < n then dec ^->. n - 1 <|> inc ^->. n + 1
-       else (inc ^->. n + 1)
-    member this.Release = inc *<- ()
-    member this.Wait = dec *<- ()
+       if 0 < n 
+       then dec ^->. n - 1 <|> inc ^->. n + 1
+       else inc ^->. n + 1
+    member __.Release = inc *<- ()
+    member __.Wait = dec *<- ()
 
 [<CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module Semaphore =

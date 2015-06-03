@@ -13,7 +13,9 @@ open Hopac.Extras
 open FsCheck.Prop
 
 let private takeOrThrow ch = 
-    (ch <|> timeOutMillis 10000 ^-> fun _ -> failwith "timeout") |> run 
+        ch 
+    <|> timeOutMillis 10000 ^-> fun _ -> failwith "timeout"
+     |> run 
 
 let private timeoutOrThrow timeout alt = 
     timeOutMillis timeout ^-> fun _ -> () 
@@ -109,7 +111,9 @@ let ``does not deadlock if client quickly chooses another alternative``() =
     let c = Ch()
     startIgnore <| pool.WithInstanceJob (fun _ -> c *<- ())
     // try to get the instance or "always"
-    run (pool.WithInstanceJob (fun _ -> Job.unit()) <|> Alt.always (Ok())) |> ignore
+    runWith <| Alt.always (Ok())
+        <| pool.WithInstanceJob (fun _ -> Job.unit())
+        |> ignore
     run c
     // check whether the pool has not deadlocked
     startIgnore <| pool.WithInstanceJob (fun _ -> c *<- ())
