@@ -22,7 +22,7 @@ let ``Wait unblocks if Release is called on a full semaphor``() =
     run s.Wait
     run s.Wait
     let v = IVar()
-    start (s.Wait ^=> fun _ -> v *<= ())
+    start <| s.Wait ^=> fun _ -> v *<= ()
     // check that IVar has not been filled yet
     v ^=> fun _ -> failwith "Semaphore is full, but Wait is synchronized."
     <|>
@@ -39,10 +39,9 @@ let holding() =
     start (Semaphore.holding s (IVar.read v))
     start (Semaphore.holding s (IVar.read v))
     // check that the semaphor is full
-    s.Wait ^=> fun _ -> failwith "Semaphore is full, but Wait is synchronized."
-    <|>
-    timeOutMillis 100 ^->. () |> run
+    runWith <| timeOutMillis 100
+        <| s.Wait ^=> fun _ -> failwith "Semaphore is full, but Wait is synchronized."
     // unblock the both jobs
-    run (v *<= ())
+    run <| v *<= ()
     // now the semaphor is available
     run s.Wait

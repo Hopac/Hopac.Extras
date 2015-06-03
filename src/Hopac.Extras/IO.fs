@@ -119,11 +119,9 @@ module File =
         Job.using <| new FileStream (path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite) <| fun file ->
         Job.using <| new StreamReader (file) <| fun reader ->
         let rec loop () =
-          (readLineAlt reader |> memo) ^=> fun line -> newLine *<<+ line >>= loop 
-          <|>
-          close 
-          <|>
-          timeOutMillis 500 ^=> fun _ -> loop()
+          readLineAlt reader ^=> fun line -> newLine *<<+ line >>= loop 
+          <|> close 
+          <|> timeOutMillis 500 ^=> loop
         loop ()
 
     start (Job.tryInDelay openReader
@@ -152,8 +150,6 @@ module Console =
             let key = Console.ReadKey ()
             keyPressed *<+ key.Key >>= loop
         else
-            timeOutMillis 200 ^=> loop 
-            <|>
-            cancelled :> Job<_>
+            timeOutMillis 200 ^=> loop <|> cancelled :> Job<_>
 
     Job.start (loop()) >>% { Cancelled = cancelled; KeyPressed = keyPressed }
