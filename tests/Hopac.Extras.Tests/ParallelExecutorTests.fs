@@ -12,11 +12,11 @@ open FsCheck.Prop
 let ``processes all messages in source``() =
     let prop (degree: uint16) (messageCount: uint32) =
         (degree > 0us && messageCount > 0u) ==> lazy (
-            let source = ch<int>()
-            let results = mb<int>()
-            let _ = ParallelExecutor(degree, source, fun x -> results <<-+ x >>% Ok())
+            let source = Ch<int>()
+            let results = Mailbox<int>()
+            let _ = ParallelExecutor(degree, source, fun x -> results *<<+ x >>% Ok())
             // synchronously send messages to the source 
-            run <| Job.forUpTo 1 (int messageCount) (fun i -> source <-- i)
+            run <| Job.forUpTo 1 (int messageCount) (fun i -> source *<- i)
             let res = run <| Job.conCollect (seq { for _ in 1u..messageCount -> Mailbox.take results })
             let expected = [1u..messageCount]
             let actual = List.ofSeq res
@@ -40,8 +40,8 @@ type Generators =
 let ``processes a message until worker returns OK``() =
     let prop (results: Choice<unit, WorkerError<unit>> list list) =
         let messages = results |> List.mapi (fun i r -> { Id = i; LastResult = None; Results = r })
-        let source = ch<MessageWithResults>()
-        let completed = mb()
+        let source = Ch<MessageWithResults>()
+        let completed = Mailbox()
         let _ = ParallelExecutor(1us, source, (fun msg -> 
             Job.result <|
                 match msg with
@@ -53,7 +53,7 @@ let ``processes a message until worker returns OK``() =
                     h 
             ), completed)
 
-        messages |> List.map (fun x -> source <-- x) |> Job.conIgnore |> start
+        messages |> List.map (fun x -> source *<- x) |> Job.conIgnore |> start
         let actual = 
             messages 
             |> List.map (fun _ -> Mailbox.take completed)
