@@ -35,6 +35,11 @@ let bindVoidTask() =
     run (JobChoice.bindVoidTask (Task.Factory.StartNew(fun() -> ())) (x2yJ >> Job.result)) = x2yJ ())
 
 [<Test>]
+let bindChoice() =
+  check (fun (x: Choice<_,_>) (x2yJ: _ -> Choice<_,_>) ->
+    run (JobChoice.bindChoice x (x2yJ >> Job.result)) = Choice.bind x2yJ x)
+
+[<Test>]
 let map() =
   check (fun (x: Choice<int, _>) (Function.F(_, x2y: int -> _)) ->
     run (JobChoice.map x2y (Job.result x)) = Choice.map x2y x)
