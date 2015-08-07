@@ -101,7 +101,7 @@ module File =
 
   /// Reads a text file continuously, performing non-blocking pooling for new lines.
   /// It's safe to call when file does not exist yet. When the file is created, 
-  // this function opens it and starts reading.
+  /// this function opens it and starts reading.
   let startReading (path: string) : FileReader =
     let newLine = mb()
     let close = ivar()
@@ -110,7 +110,7 @@ module File =
     let rec openReader () =
       let readLineAlt (file: StreamReader) : Alt<string> = Alt.delay <| fun _ -> 
         if file.EndOfStream then Alt.never()
-        else file.ReadLineAsync() |> Task.awaitJob |> memo :> _
+        else job { return file.ReadLine() } |> memo :> _
       
       if not (File.Exists path) then
         timeOutMillis 500 >>=? openReader <|>?

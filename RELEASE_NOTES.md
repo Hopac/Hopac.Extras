@@ -1,3 +1,6 @@
+#### 0.1.32 - 07.08.2015
+* Fixed: File.startReading can throw InvalidOperationException when it calls StreamReader.EndOfStream
+
 #### 0.1.31 - 11.06.2015
 * JobChoice CE: add `Bind` and `ReturnFrom` overloads for `Choice`
 
