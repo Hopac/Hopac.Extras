@@ -2,7 +2,6 @@
 
 open Hopac
 open Hopac.Infixes
-open Hopac.Job.Infixes
 open Hopac.Extras
 open NUnit.Framework
 open FsCheck
@@ -14,7 +13,7 @@ let ``processes all messages in source``() =
         (degree > 0us && messageCount > 0u) ==> lazy (
             let source = Ch<int>()
             let results = Mailbox<int>()
-            let _ = ParallelExecutor(degree, source, fun x -> results *<<+ x >>% Ok())
+            let _ = ParallelExecutor(degree, source, fun x -> results *<<+ x >>-. Ok())
             // synchronously send messages to the source 
             run <| Job.forUpTo 1 (int messageCount) (fun i -> source *<- i)
             let res = run <| Job.conCollect (seq { for _ in 1u..messageCount -> Mailbox.take results })

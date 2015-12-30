@@ -2,8 +2,6 @@
 
 open Hopac
 open Hopac.Infixes
-open Hopac.Alt.Infixes
-open Hopac.Job.Infixes
 
 [<Sealed>]
 type Semaphore(n: int) = 
@@ -21,4 +19,4 @@ type Semaphore(n: int) =
 module Semaphore =
     let inline wait (s: Semaphore) = s.Wait
     let inline release (s: Semaphore) = s.Release
-    let holding s j = Job.tryFinallyJob (wait s >>. j) s.Release
+    let holding s j = Job.tryFinallyJob (wait s >>=. j) s.Release

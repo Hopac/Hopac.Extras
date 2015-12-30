@@ -4,7 +4,6 @@ open NUnit.Framework
 open Hopac.Extras
 open Hopac
 open Hopac.Infixes
-open Hopac.Alt.Infixes
 
 [<Test; Timeout (5000)>]
 let ``Wait blocks if semaphor is full``() =
@@ -39,8 +38,7 @@ let holding() =
     start (Semaphore.holding s (IVar.read v))
     start (Semaphore.holding s (IVar.read v))
     // check that the semaphor is full
-    runWith <| timeOutMillis 100
-        <| s.Wait ^=> fun _ -> failwith "Semaphore is full, but Wait is synchronized."
+    run (timeOutMillis 100 <|> s.Wait ^=> fun _ -> failwith "Semaphore is full, but Wait is synchronized.") |> ignore
     // unblock the both jobs
     run <| v *<= ()
     // now the semaphor is available

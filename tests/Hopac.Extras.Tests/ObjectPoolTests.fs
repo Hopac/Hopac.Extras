@@ -2,13 +2,11 @@
 
 open Hopac
 open Hopac.Infixes
-open Hopac.Job.Infixes
-open Hopac.Alt.Infixes
 open NUnit.Framework
 open Swensen.Unquote
 open System
 open System.Threading
-open FsCheck 
+open FsCheck
 open Hopac.Extras
 open FsCheck.Prop
 
@@ -111,9 +109,7 @@ let ``does not deadlock if client quickly chooses another alternative``() =
     let c = Ch()
     startIgnore <| pool.WithInstanceJob (fun _ -> c *<- ())
     // try to get the instance or "always"
-    runWith <| Alt.always (Ok())
-        <| pool.WithInstanceJob (fun _ -> Job.unit())
-        |> ignore
+    run (Alt.always (Ok()) <|> pool.WithInstanceJob (fun _ -> Job.unit())) |> ignore
     run c
     // check whether the pool has not deadlocked
     startIgnore <| pool.WithInstanceJob (fun _ -> c *<- ())
@@ -127,7 +123,7 @@ let ``dispose all instances when pool is disposing``() =
             [1..5]
             |> List.map (fun _ ->
                 let s, c = Ch(), Ch()
-                startIgnore <| pool.WithInstanceJob (fun _ -> Ch.give s () >>. Ch.give c ())
+                startIgnore <| pool.WithInstanceJob (fun _ -> Ch.give s () >>-. Ch.give c ())
                 s, c)
         // ensure all jobs started and wait on "c" channels
         cs |> List.map fst |> Job.conIgnore |> run
@@ -225,11 +221,13 @@ let ``does not count failed to create instance as "given"``() =
 
 type TestCase = TestCase of capacity: uint32 * jobs: int32
 
-type Generators = 
+type Generators =
     static member Capacity =
-        fun value jobs -> TestCase (uint32 value, jobs)
-        <!> Gen.choose (1, 20)
-        <*> Gen.choose (1, 100)
+        gen {
+            let! value = Gen.choose (1, 20)
+            let! jobs =Gen.choose (1, 100)
+            return TestCase (uint32 value, jobs)
+        }
         |> Arb.fromGen 
 
 [<Test; Timeout(timeout)>]

@@ -2,8 +2,6 @@
 
 open Hopac
 open Hopac.Infixes
-open Hopac.Job.Infixes
-open Hopac.Alt.Infixes
 
 /// Worker execution error.
 type WorkerError<'error> =
@@ -45,9 +43,9 @@ type ParallelExecutor<'msg, 'error>
                             match completed with
                             | Some mb -> mb *<<+ (msg, result)
                             | None -> Job.unit()
-                        >>. workDone *<- result }
+                        >>=. workDone *<- result }
                 |> Job.queue
-            >>% (degree, usage + 1u)
+            >>-. (degree, usage + 1u)
 
         if usage < uint32 degree then
             setDegreeAlt() <|> workDoneAlt() <|> processMessageAlt()

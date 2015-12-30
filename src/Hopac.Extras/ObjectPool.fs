@@ -2,8 +2,6 @@
 
 open Hopac
 open Hopac.Infixes
-open Hopac.Job.Infixes
-open Hopac.Alt.Infixes
 open Hopac.Extensions
 open System
 
@@ -38,8 +36,8 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
         let releaseAlt() =
             releaseCh ^=> fun instance ->
                 instance.LastUsed <- DateTime.UtcNow
-                Job.start (timeOut inactiveTimeBeforeDispose >>.
-                           (maybeExpiredCh *<+ instance)) >>.
+                Job.start (timeOut inactiveTimeBeforeDispose >>=.
+                           (maybeExpiredCh *<+ instance)) >>=.
                 loop (instance :: available, given - 1u)
         // request for an instance
         let reqAlt() =
@@ -66,7 +64,7 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
                 // dispose all instances that are in pool
                 available |> List.iter dispose
                 // wait until all given instances are returns to pool and disposing them on the way
-                Job.forN (int given) (releaseCh |>> dispose) >>. hasDisposed *<= ()
+                Job.forN (int given) (releaseCh >>- dispose) >>=. hasDisposed *<= ()
 
         if given < capacity then
             // if number of given objects has not reached the capacity, synchronize on request channel as well
@@ -78,7 +76,7 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
      
     let get() = Alt.withNackJob <| fun nack ->
         let replyCh = Ch()
-        reqCh *<+ (nack, replyCh) >>% replyCh
+        reqCh *<+ (nack, replyCh) >>-. replyCh
 
     /// Applies a function, that returns a Job, on an instance from pool. Returns `Alt` to consume 
     /// the function result.
@@ -95,7 +93,7 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
     member x.WithInstanceJob (f: 'a -> #Job<'r>) : Alt<Choice<'r, exn>> = x.WithInstanceJobChoice (f >> Job.catch)
 
     interface IAsyncDisposable with
-        member __.DisposeAsync() = IVar.tryFill doDispose () >>. hasDisposed
+        member __.DisposeAsync() = IVar.tryFill doDispose () >>=. hasDisposed
 
     interface IDisposable with 
         /// Runs disposing asynchronously. Does not wait until the disposing finishes. 

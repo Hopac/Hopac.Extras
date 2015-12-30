@@ -2,7 +2,7 @@
 
 open NUnit.Framework
 open Hopac
-open Hopac.Job.Infixes
+open Hopac.Infixes
 open Hopac.Extras
 open System
 open System.IO

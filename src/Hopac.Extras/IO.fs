@@ -4,8 +4,6 @@ open System
 open System.Diagnostics
 open Hopac
 open Hopac.Infixes
-open Hopac.Job.Infixes
-open Hopac.Alt.Infixes
 
 module ProcessRunner =
   /// Creates ProcessStartInfo to start a hidden process with standard output / error redirected.
@@ -58,7 +56,7 @@ module ProcessRunner =
       /// Job that kills the process.
       Kill: unit -> Job<Choice<unit, ExitError>> }
     interface IAsyncDisposable with
-      member x.DisposeAsync() = x.Kill() |>> ignore
+      member x.DisposeAsync() = x.Kill() >>- ignore
 
   /// Starts given Process asynchronously and returns RunningProcess instance.
   let startProcess (p: Process) : RunningProcess =
@@ -87,8 +85,6 @@ module ProcessRunner =
 
 module File =    
   open System.IO
-  open System.Threading.Tasks
-  open Hopac.Extensions
 
   [<NoComparison; NoEquality>]
   type FileReader =
@@ -142,7 +138,7 @@ module Console =
   /// Starts watching console in a separate job.
   let watch() = Job.delay <| fun _ ->
     let cancelled = IVar<unit>()
-    Console.CancelKeyPress.Add <| fun e -> start (IVar.tryFill cancelled () >>% e.Cancel <- true)
+    Console.CancelKeyPress.Add <| fun e -> start (IVar.tryFill cancelled () >>-. e.Cancel <- true)
     let keyPressed = Ch<ConsoleKey>()
 
     let rec loop () =
@@ -152,4 +148,4 @@ module Console =
         else
             timeOutMillis 200 ^=> loop <|> cancelled :> Job<_>
 
-    Job.start (loop()) >>% { Cancelled = cancelled; KeyPressed = keyPressed }
+    Job.start (loop()) >>-. { Cancelled = cancelled; KeyPressed = keyPressed }

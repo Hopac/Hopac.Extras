@@ -2,7 +2,7 @@
 
 open System
 open Hopac
-open Hopac.Job.Infixes
+open Hopac.Infixes
 open Hopac.Extras
 open FsCheck
 open System.Threading.Tasks
@@ -12,7 +12,7 @@ open Swensen.Unquote
 let private check = Check.VerboseThrowOnFailure
 
 [<Test>]
-let result() = check (fun x -> run (JobChoice.result x |>> fun r -> r = Ok x))
+let result() = check (fun x -> run (JobChoice.result x >>- fun r -> r = Ok x))
 
 [<Test>]
 let bind() =

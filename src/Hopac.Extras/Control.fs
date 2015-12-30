@@ -2,7 +2,7 @@
 
 open System
 open Hopac
-open Hopac.Job.Infixes
+open Hopac.Infixes
 open Hopac.Extensions
 open System.Threading.Tasks
 open Hopac.Core
@@ -25,11 +25,11 @@ module JobChoice =
 
   let result (x: 'x) : Job<Choice<'x, 'e>> = Job.result <| Ok x
   let map (x2y: 'x -> 'y) (x: Job<Choice<'x, 'e>>): Job<Choice<'y, 'e>> = 
-    x |>> function
+    x >>- function
     | Ok x -> Ok (x2y x)
     | Fail e -> Fail e 
   let mapError (e2f: 'e -> 'f) (x: Job<Choice<'x, 'e>>): Job<Choice<'x, 'f>> =
-    x |>> function
+    x >>- function
     | Ok x -> Ok x
     | Fail e -> Fail (e2f e)
 
@@ -42,11 +42,11 @@ type JobChoiceBuilder () =
   member inline __.Bind (xT: Task<Choice<'x, 'e>>, x2yJ: 'x -> Job<Choice<'y, 'e>>) : Job<Choice<'y, 'e>> = bindTask xT x2yJ 
   member inline __.Bind (uT: Task, u2xJ: unit -> Job<Choice<'x, 'e>>) : Job<Choice<'x, 'e>> = bindVoidTask uT u2xJ
   member inline __.Bind (xJ: Choice<'x, 'e>, x2yJ: 'x -> Job<Choice<'y, 'e>>) : Job<Choice<'y, 'e>> = bindChoice xJ x2yJ
-  member inline __.Combine (uA: Async<Choice<unit, 'e>>, xJ: Job<Choice<'x, 'e>>) : Job<Choice<'x, 'e>> = Async.toJob uA >>. xJ
-  member inline __.Combine (uT: Task<Choice<unit, 'e>>, xJ: Job<Choice<'x, 'e>>) : Job<Choice<'x, 'e>> = Task.awaitJob uT >>. xJ
-  member inline __.Combine (uT: Task, xJ: Job<Choice<'x, 'e>>) : Job<Choice<'x, 'e>> = Task.awaitJob uT >>. xJ
+  member inline __.Combine (uA: Async<Choice<unit, 'e>>, xJ: Job<Choice<'x, 'e>>) : Job<Choice<'x, 'e>> = Async.toJob uA >>=. xJ
+  member inline __.Combine (uT: Task<Choice<unit, 'e>>, xJ: Job<Choice<'x, 'e>>) : Job<Choice<'x, 'e>> = Task.awaitJob uT >>=. xJ
+  member inline __.Combine (uT: Task, xJ: Job<Choice<'x, 'e>>) : Job<Choice<'x, 'e>> = Task.awaitJob uT >>=. xJ
   
-  member inline __.Combine (uJ: Job<Choice<unit, 'e>>, xJ: Job<Choice<'x, 'e>>) : Job<Choice<'x, 'e>> =  
+  member inline __.Combine (uJ: Job<Choice<unit, 'e>>, xJ: Job<Choice<'x, 'e>>) : Job<Choice<'x, 'e>> =
     uJ >>= function
     | Ok() -> xJ
     | Fail e -> Job.result <| Fail e
@@ -96,7 +96,7 @@ type JobChoiceBuilder () =
     if u2b() then job.Bind(uJ, (fun () -> job.While(u2b, uJ)))
     else job.Zero()
 
-  member __.Zero () : Job<Choice<unit, 'e>> = StaticData.unit |>> Ok
+  member __.Zero () : Job<Choice<unit, 'e>> = StaticData.unit >>- Ok
 
 [<AutoOpen>]
 module TopLevel =

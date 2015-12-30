@@ -1,14 +1,14 @@
 source https://nuget.org/api/v2
 
 nuget FAKE
-nuget NUnit
-nuget NUnit.Runners
+nuget NUnit ~> 2
+nuget NUnit.Runners ~> 2
 nuget Unquote
 nuget FsCheck
 nuget Octokit
 nuget SourceLink.Fake
 nuget NuGet.CommandLine
 nuget Hopac
-nuget FSharp.Core 3.1.2.1
+nuget FSharp.Core 3.1.2.5
 
 github fsharp/FAKE modules/Octokit/Octokit.fsx

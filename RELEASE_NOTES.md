@@ -1,3 +1,6 @@
+#### 0.1.33 - 30.12.2015
+* Update Hopac to version 0.1.3
+
 #### 0.1.32 - 07.08.2015
 * Fixed: File.startReading can throw InvalidOperationException when it calls StreamReader.EndOfStream
 
