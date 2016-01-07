@@ -74,9 +74,7 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
     
     do start (loop ([], 0u)) 
      
-    let get() = Alt.withNackJob <| fun nack ->
-        let replyCh = Ch()
-        reqCh *<+ (nack, replyCh) >>-. replyCh
+    let get() = reqCh *<+->- fun replyCh nack -> (nack, replyCh)
 
     /// Applies a function, that returns a Job, on an instance from pool. Returns `Alt` to consume 
     /// the function result.

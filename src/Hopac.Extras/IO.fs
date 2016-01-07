@@ -138,7 +138,7 @@ module Console =
   /// Starts watching console in a separate job.
   let watch() = Job.delay <| fun _ ->
     let cancelled = IVar<unit>()
-    Console.CancelKeyPress.Add <| fun e -> start (IVar.tryFill cancelled () >>-. e.Cancel <- true)
+    Console.CancelKeyPress.Add <| fun e -> e.Cancel <- true; start <| IVar.tryFill cancelled ()
     let keyPressed = Ch<ConsoleKey>()
 
     let rec loop () =
