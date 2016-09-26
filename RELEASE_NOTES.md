@@ -1,3 +1,6 @@
+#### 0.3.0 - 26.09.2016
+* Update Hopac to version 0.3.14
+
 #### 0.1.33 - 30.12.2015
 * Update Hopac to version 0.1.3
 
