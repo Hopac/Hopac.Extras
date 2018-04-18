@@ -202,7 +202,7 @@ let ``returns Fail if creator raise exception``() =
     let pool = new ObjectPool<_>((fun _ -> failwith "error"), 1u)
     match run <| pool.WithInstanceJob (fun _ -> Job.result 0) with
     | Ok _ -> failwithf "Should return Fail but was Ok"
-    | Fail _ -> ()
+    | Error _ -> ()
 
 [<Test; Timeout(timeout)>]
 let ``does not count failed to create instance as "given"``() =
@@ -215,7 +215,7 @@ let ``does not count failed to create instance as "given"``() =
     // first call, the creator raises exception and `given` counter should not be inceremented
     match run <| pool.WithInstanceJob (fun _ -> Job.result 0) with
     | Ok _ -> failwithf "Should return Fail but was Ok"
-    | Fail _ -> ()
+    | Error _ -> ()
     // second call should sutisfy since capacity is not reached yet
     run <| pool.WithInstanceJob (fun _ -> Job.result 0) =! Ok 0
 

@@ -16,7 +16,7 @@ let ``ProcessExited alt is signalled if process normally exited``() =
     Alt.choose [
         p.ProcessExited ^-> function 
             | Ok() -> printfn "Process normally exited" 
-            | Fail e -> failwithf "Process exited with error %A" e
+            | Error e -> failwithf "Process exited with error %A" e
         timeOutMillis 5000 ^-> fun () -> failwithf "Process has not exited in 5 seconds"
     ] |> run
     ()
@@ -39,7 +39,7 @@ let ``ProcessExited alt is signalled if process is killed from outside``() =
     Alt.choose [
         p.ProcessExited ^-> function 
             | Ok() -> failwithf "Process normally exited, but an error was expected" 
-            | Fail e -> printfn "Process exited with error %A" e
+            | Error e -> printfn "Process exited with error %A" e
         timeOutMillis 5000 ^-> fun () -> failwithf "Process has not exited in 5 seconds"
     ] |> run
 
