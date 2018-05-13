@@ -1,3 +1,7 @@
+#### 1.0.0 - 18.04.2018
+* Add JobResult CE
+* remove Ok and Fail functions
+
 #### 0.3.1 - 26.09.2016
 * Update Hopac to version 0.3.21
 

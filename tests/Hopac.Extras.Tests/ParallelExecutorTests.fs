@@ -25,8 +25,8 @@ let ``processes all messages in source``() =
     
 type MessageWithResults = 
     { Id: int
-      mutable LastResult: Choice<unit, WorkerError<unit>> option
-      mutable Results: Choice<unit, WorkerError<unit>> list }
+      mutable LastResult: Result<unit, WorkerError<unit>> option
+      mutable Results: Result<unit, WorkerError<unit>> list }
     override x.ToString() = sprintf "Msg (Id = %O)" x.Id
 
 type Generators = 
@@ -37,7 +37,7 @@ type Generators =
 
 [<Test; Explicit; Timeout(5000)>]
 let ``processes a message until worker returns OK``() =
-    let prop (results: Choice<unit, WorkerError<unit>> list list) =
+    let prop (results: Result<unit, WorkerError<unit>> list list) =
         let messages = results |> List.mapi (fun i r -> { Id = i; LastResult = None; Results = r })
         let source = Ch<MessageWithResults>()
         let completed = Mailbox()
@@ -60,6 +60,6 @@ let ``processes a message until worker returns OK``() =
             |> run
         actual 
         |> Seq.map (fun (m, _) -> m.LastResult) 
-        |> Seq.forall (function Some Ok | Some (Fail (Fatal _)) -> true | _ -> false)
+        |> Seq.forall (function Some (Ok _) | Some (Error (Fatal _)) -> true | _ -> false)
         
     Check.VerboseThrowOnFailure (forAll Generators.MessageResultsArb prop)

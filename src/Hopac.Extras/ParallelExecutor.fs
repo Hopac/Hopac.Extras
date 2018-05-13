@@ -20,11 +20,11 @@ type ParallelExecutor<'msg, 'error>
     (
         degree: uint16,
         source: Alt<'msg>, 
-        worker: 'msg -> Job<Choice<unit, WorkerError<'error>>>,
-        ?completed: Mailbox<'msg * Choice<unit, WorkerError<'error>>>
+        worker: 'msg -> Job<Result<unit, WorkerError<'error>>>,
+        ?completed: Mailbox<'msg * Result<unit, WorkerError<'error>>>
     ) =
     let setDegree = Ch<uint16>() 
-    let workDone = Ch<Choice<unit, WorkerError<_>>>()
+    let workDone = Ch<Result<unit, WorkerError<_>>>()
     let failedMessages = Mailbox()     
 
     let pool = Job.iterateServer (degree, 0u)  <| fun (degree, usage) ->
@@ -37,9 +37,9 @@ type ParallelExecutor<'msg, 'error>
                     let! result = worker msg
                     return!
                         match result with
-                        | Fail (Recoverable _) -> failedMessages *<<+ msg
-                        | Fail (Fatal _)
-                        | Ok ->
+                        | Error (Recoverable _) -> failedMessages *<<+ msg
+                        | Error (Fatal _)
+                        | Ok _ ->
                             match completed with
                             | Some mb -> mb *<<+ (msg, result)
                             | None -> Job.unit()

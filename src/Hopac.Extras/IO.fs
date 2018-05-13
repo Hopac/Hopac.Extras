@@ -28,7 +28,7 @@ module ProcessRunner =
 
   let private exitCodeToError = function
     | 0 -> Ok()
-    | code -> Fail (NonZeroExitCode code)
+    | code -> Error (NonZeroExitCode code)
 
   let private getExitCodeSafe (p: Process) = try p.ExitCode with _ -> 0
   let private hasExitedSafe (p: Process) = try p.HasExited with _ -> true
@@ -43,8 +43,8 @@ module ProcessRunner =
           p.Kill() 
           if p.WaitForExit (int killTimeout.TotalMilliseconds) then 
             exitCodeToError (getExitCodeSafe p)
-          else Fail (KillTimeout killTimeout)
-        with e -> Fail (CannotKill e)
+          else Error (KillTimeout killTimeout)
+        with e -> Error (CannotKill e)
     finally try p.Dispose() with _ -> ()
 
   [<NoComparison; NoEquality>]
@@ -52,9 +52,9 @@ module ProcessRunner =
     { /// Process's standard output feed.
       LineOutput: Alt<string>
       /// Available for picking when the process has exited.
-      ProcessExited: Alt<Choice<unit, ExitError>>
+      ProcessExited: Alt<Result<unit, ExitError>>
       /// Job that kills the process.
-      Kill: unit -> Job<Choice<unit, ExitError>> }
+      Kill: unit -> Job<Result<unit, ExitError>> }
     interface IAsyncDisposable with
       member x.DisposeAsync() = x.Kill() >>- ignore
 

@@ -25,7 +25,7 @@ type private PoolEntry<'a> =
 type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBeforeDispose: TimeSpan) =
     let capacity = defaultArg capacity 50u
     let inactiveTimeBeforeDispose = defaultArg inactiveTimeBeforeDispose (TimeSpan.FromMinutes 1.)
-    let reqCh = Ch<Promise<unit> * Ch<Choice<PoolEntry<'a>, exn>>>()
+    let reqCh = Ch<Promise<unit> * Ch<Result<PoolEntry<'a>, exn>>>()
     let releaseCh = Ch<'a PoolEntry>()
     let maybeExpiredCh = Ch<'a PoolEntry>()
     let doDispose = IVar()
@@ -48,13 +48,13 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
                 match available with
                 | instance :: available -> ok available instance
                 | [] -> try createNew () |> PoolEntry.Create |> ok available
-                        with e -> (replyCh *<- Fail e <|> nack) ^=>. loop (available, given)
+                        with e -> (replyCh *<- Error e <|> nack) ^=>. loop (available, given)
         // an instance was inactive for too long
         let expiredAlt() =
             maybeExpiredCh ^=> fun instance ->
                 if DateTime.UtcNow - instance.LastUsed > inactiveTimeBeforeDispose 
                    && List.exists (fun x -> obj.ReferenceEquals(x, instance)) available then
-                    dispose instance
+                    (instance :> IDisposable).Dispose()
                     loop (available |> List.filter (fun x -> not <| obj.ReferenceEquals(x, instance)), given)
                 else loop (available, given)
 
@@ -62,9 +62,9 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
         let disposeAlt() = 
             doDispose ^=> fun _ ->
                 // dispose all instances that are in pool
-                available |> List.iter dispose
+                available |> List.iter (fun x -> (x :> IDisposable).Dispose())
                 // wait until all given instances are returns to pool and disposing them on the way
-                Job.forN (int given) (releaseCh >>- dispose) >>=. hasDisposed *<= ()
+                Job.forN (int given) (releaseCh >>- fun x -> (x :> IDisposable).Dispose()) >>=. hasDisposed *<= ()
 
         if given < capacity then
             // if number of given objects has not reached the capacity, synchronize on request channel as well
@@ -78,17 +78,16 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
 
     /// Applies a function, that returns a Job, on an instance from pool. Returns `Alt` to consume 
     /// the function result.
-    member __.WithInstanceJobChoice (f: 'a -> #Job<Choice<'r, exn>>) : Alt<Choice<'r, exn>> =
+    member __.WithInstanceJobResult (f: 'a -> #Job<Result<'r, exn>>) : Alt<Result<'r, exn>> =
         get() ^=> function
             | Ok entry ->
                Job.tryFinallyJobDelay
                    <| fun _ -> f entry.Value
                    <| releaseCh *<- entry
-            | Fail e -> Job.result (Fail e)
-
+            | Error e -> Job.result (Error e)
     /// Applies a function, that returns a Job, on an instance from pool. Returns `Alt` to consume 
     /// the function result.
-    member x.WithInstanceJob (f: 'a -> #Job<'r>) : Alt<Choice<'r, exn>> = x.WithInstanceJobChoice (f >> Job.catch)
+    member x.WithInstanceJob (f: 'a -> #Job<'r>) : Alt<Result<'r, exn>> = x.WithInstanceJobResult (f >> Job.catchResult)
 
     interface IAsyncDisposable with
         member __.DisposeAsync() = IVar.tryFill doDispose () >>=. hasDisposed
@@ -97,7 +96,7 @@ type ObjectPool<'a>(createNew: unit -> 'a, ?capacity: uint32, ?inactiveTimeBefor
         /// Runs disposing asynchronously. Does not wait until the disposing finishes. 
         member x.Dispose() = (x :> IAsyncDisposable).DisposeAsync() |> start
 
-type ObjectPool with
+type ObjectPool<'a> with
     /// Applies a function on an instance from pool. Returns the function result.
     member x.WithInstance f = x.WithInstanceJob (fun a -> Job.result (f a))
     /// Returns an Async that applies a function on an instance from pool and returns the function result.
